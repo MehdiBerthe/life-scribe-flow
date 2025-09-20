@@ -73,11 +73,40 @@ export interface Envelope {
 export interface PhysicalLog {
   id: string;
   date: Date;
-  kind: 'sleep' | 'workout' | 'weight' | 'energy' | 'caffeine' | 'calories' | 'meal';
-  valueNum?: number;
+  sleep?: {
+    hours?: number;
+    quality?: number; // 1-5 scale
+    notes?: string;
+  };
+  workout?: {
+    type?: string;
+    duration?: number; // minutes
+    intensity?: number; // 1-5 scale
+    notes?: string;
+  };
+  weight?: {
+    value: number; // in kg
+    time?: string; // time of measurement
+  };
+  energy?: {
+    level: number; // 1-5 scale
+    notes?: string;
+  };
+  caffeine?: {
+    cups?: number;
+    notes?: string;
+  };
+  meals?: Array<{
+    id: string;
+    time: string; // e.g., "08:30", "12:00", "19:30"
+    type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+    description: string;
+    calories?: number;
+  }>;
+  totalCalories?: number;
   notes?: string;
-  mealType?: 'one-meal' | 'multiple-meals';
-  mealDescription?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface WeeklyPlan {
