@@ -7,34 +7,19 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { storage, generateId, formatDate, isToday, getWeekStart } from '@/lib/storage';
-import { DailyGoal, WeeklyReview, EndOfDayReview, WeeklyPlan, EndOfWeekReview } from '@/types';
+import { DailyGoal, EndOfDayReview, WeeklyPlan, EndOfWeekReview } from '@/types';
 import { Target, BarChart3, Plus, CheckCircle2, Calendar, Moon, Star, List, CheckSquare } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function Planning() {
   const [goals, setGoals] = useState<DailyGoal[]>([]);
-  const [reviews, setReviews] = useState<WeeklyReview[]>([]);
   const [endOfDayReviews, setEndOfDayReviews] = useState<EndOfDayReview[]>([]);
   const [weeklyPlans, setWeeklyPlans] = useState<WeeklyPlan[]>([]);
   const [endOfWeekReviews, setEndOfWeekReviews] = useState<EndOfWeekReview[]>([]);
   const [newGoal, setNewGoal] = useState('');
   const [newPriority, setNewPriority] = useState('');
-  const [showReviewForm, setShowReviewForm] = useState(false);
   const [showDayReviewForm, setShowDayReviewForm] = useState(false);
-  const [showWeekPlanForm, setShowWeekPlanForm] = useState(false);
   const [showEndWeekReviewForm, setShowEndWeekReviewForm] = useState(false);
-  const [reviewForm, setReviewForm] = useState({
-    summary: '',
-    commitments: {
-      Physical: '',
-      Mental: '',
-      Emotional: '',
-      Spiritual: '',
-      Social: '',
-      Professional: '',
-      Financial: ''
-    }
-  });
   
   const [dayReviewForm, setDayReviewForm] = useState({
     wentWell: '',
@@ -58,13 +43,11 @@ export default function Planning() {
 
   useEffect(() => {
     const loadedGoals = storage.dailyGoals.getAll();
-    const loadedReviews = storage.weeklyReviews.getAll();
     const loadedDayReviews = storage.endOfDayReviews.getAll();
     const loadedWeeklyPlans = storage.weeklyPlans.getAll();
     const loadedEndWeekReviews = storage.endOfWeekReviews.getAll();
     
     setGoals(loadedGoals.sort((a, b) => b.date.getTime() - a.date.getTime()));
-    setReviews(loadedReviews.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
     setEndOfDayReviews(loadedDayReviews.sort((a, b) => b.date.getTime() - a.date.getTime()));
     setWeeklyPlans(loadedWeeklyPlans.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
     setEndOfWeekReviews(loadedEndWeekReviews.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
@@ -114,42 +97,6 @@ export default function Planning() {
     });
   };
 
-  const addReview = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reviewForm.summary.trim()) return;
-
-    const review: WeeklyReview = {
-      id: generateId(),
-      weekStart: getWeekStart(new Date()),
-      summary: reviewForm.summary.trim(),
-      commitments: Object.fromEntries(
-        Object.entries(reviewForm.commitments).filter(([_, value]) => value.trim())
-      )
-    };
-
-    const updatedReviews = [review, ...reviews];
-    setReviews(updatedReviews);
-    storage.weeklyReviews.save(updatedReviews);
-    
-    setReviewForm({
-      summary: '',
-      commitments: {
-        Physical: '',
-        Mental: '',
-        Emotional: '',
-        Spiritual: '',
-        Social: '',
-        Professional: '',
-        Financial: ''
-      }
-    });
-    setShowReviewForm(false);
-    
-    toast({
-      title: "Weekly Review Added",
-      description: "Your reflection has been saved."
-    });
-  };
 
   const addDayReview = (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,7 +256,7 @@ export default function Planning() {
       </div>
 
       <Tabs defaultValue="goals" className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="goals" className="flex items-center gap-2">
             <Target size={16} />
             Daily Goals
@@ -323,10 +270,6 @@ export default function Planning() {
             End of Day
           </TabsTrigger>
           <TabsTrigger value="end-week-review" className="flex items-center gap-2">
-            <CheckSquare size={16} />
-            End of Week
-          </TabsTrigger>
-          <TabsTrigger value="review" className="flex items-center gap-2">
             <BarChart3 size={16} />
             Weekly Review
           </TabsTrigger>
@@ -932,118 +875,6 @@ export default function Planning() {
           </div>
         </TabsContent>
 
-        <TabsContent value="review" className="space-y-6">
-          {/* Add Review Button */}
-          <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-foreground">Weekly Reviews</h2>
-            <Button 
-              onClick={() => setShowReviewForm(!showReviewForm)}
-              className="flex items-center gap-2"
-            >
-              <Plus size={16} />
-              New Review
-            </Button>
-          </div>
-
-          {/* Add Review Form */}
-          {showReviewForm && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Weekly Review</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <form onSubmit={addReview} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-foreground">Week Summary *</label>
-                    <Textarea
-                      value={reviewForm.summary}
-                      onChange={(e) => setReviewForm(prev => ({ ...prev, summary: e.target.value }))}
-                      placeholder="Reflect on this week: wins, challenges, lessons learned..."
-                      rows={4}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-foreground mb-3 block">
-                      Next Week's Commitments (optional)
-                    </label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {Object.entries(reviewForm.commitments).map(([area, value]) => (
-                        <div key={area}>
-                          <label className="text-sm text-muted-foreground">{area}</label>
-                          <Input
-                            value={value}
-                            onChange={(e) => setReviewForm(prev => ({
-                              ...prev,
-                              commitments: { ...prev.commitments, [area]: e.target.value }
-                            }))}
-                            placeholder={`${area} commitment...`}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button type="submit">Save Review</Button>
-                    <Button type="button" variant="outline" onClick={() => setShowReviewForm(false)}>
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Previous Reviews */}
-          <div className="space-y-4">
-            {reviews.length === 0 ? (
-              <Card>
-                <CardContent className="pt-12">
-                  <div className="text-center">
-                    <BarChart3 size={48} className="mx-auto text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium text-foreground mb-2">No weekly reviews yet</h3>
-                    <p className="text-muted-foreground">Start reflecting on your week to build better habits.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              reviews.map((review) => (
-                <Card key={review.id}>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Calendar className="h-5 w-5" />
-                      Week of {formatDate(review.weekStart)}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-foreground mb-2">Summary</h4>
-                        <p className="text-muted-foreground whitespace-pre-wrap">{review.summary}</p>
-                      </div>
-                      
-                      {review.commitments && Object.keys(review.commitments).length > 0 && (
-                        <div>
-                          <h4 className="font-medium text-foreground mb-2">Commitments</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                            {Object.entries(review.commitments).map(([area, commitment]) => (
-                              <div key={area} className="text-sm">
-                                <span className="font-medium text-foreground">{area}:</span>{' '}
-                                <span className="text-muted-foreground">{commitment}</span>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            )}
-          </div>
-        </TabsContent>
       </Tabs>
     </div>
   );
