@@ -65,10 +65,20 @@ export interface PhysicalLog {
 
 export interface Contact {
   id: string;
+  user_id: string;
   name: string;
-  lastTouch?: Date;
-  nextTouch?: Date;
+  email?: string;
+  phone?: string;
+  company?: string;
+  segment?: string;
+  current_situation?: string;
+  working_on?: string;
+  how_to_add_value?: string;
   notes?: string;
+  last_touch?: Date;
+  next_touch?: Date;
+  created_at: Date;
+  updated_at: Date;
 }
 
 export const JOURNAL_AREAS = [

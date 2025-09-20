@@ -1,170 +1,201 @@
 import { useState, useEffect } from 'react';
-import { Contact, supabase } from '@/lib/supabase';
-import { generateDemoContactsWithTimestamps } from '@/data/demoContacts';
+import { Contact } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from './useAuth';
 
 export function useContacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
-  const fetchContacts = async () => {
+  const loadContacts = async () => {
+    if (!user) {
+      setContacts([]);
+      setLoading(false);
+      return;
+    }
+
     try {
-      setLoading(true);
+      const { data, error } = await supabase
+        .from('contacts')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
 
-      // For demo purposes, use local demo data
-      // In production, this would fetch from Supabase
-      const demoData = generateDemoContactsWithTimestamps();
-      const contactsWithIds = demoData.map((contact, index) => ({
+      if (error) {
+        console.error('Error loading contacts:', error);
+        return;
+      }
+
+      const contactsWithDates = data.map(contact => ({
         ...contact,
-        id: `demo-${index}`,
-        user_id: 'demo-user',
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        last_touch: contact.last_touch ? new Date(contact.last_touch) : undefined,
+        next_touch: contact.next_touch ? new Date(contact.next_touch) : undefined,
+        created_at: new Date(contact.created_at),
+        updated_at: new Date(contact.updated_at),
       }));
 
-      setContacts(contactsWithIds);
-
-      // TODO: Replace with actual Supabase query when backend is set up
-      // const { data, error } = await supabase
-      //   .from('contacts')
-      //   .select('*')
-      //   .order('importance_score', { ascending: false });
-      // if (error) throw error;
-      // setContacts(data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch contacts');
+      setContacts(contactsWithDates);
+    } catch (error) {
+      console.error('Error loading contacts:', error);
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadContacts();
+  }, [user]);
+
+  const addContact = async (contactData: Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+    if (!user) return { error: new Error('User not authenticated') };
+
+    try {
+      const { data, error } = await supabase
+        .from('contacts')
+        .insert([{
+          ...contactData,
+          user_id: user.id,
+          last_touch: contactData.last_touch?.toISOString().split('T')[0],
+          next_touch: contactData.next_touch?.toISOString().split('T')[0],
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error adding contact:', error);
+        return { error };
+      }
+
+      const newContact = {
+        ...data,
+        last_touch: data.last_touch ? new Date(data.last_touch) : undefined,
+        next_touch: data.next_touch ? new Date(data.next_touch) : undefined,
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at),
+      };
+
+      setContacts(prev => [newContact, ...prev]);
+      return { data: newContact };
+    } catch (error) {
+      console.error('Error adding contact:', error);
+      return { error };
+    }
+  };
+
+  const updateContact = async (id: string, updates: Partial<Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
+    if (!user) return { error: new Error('User not authenticated') };
+
+    try {
+      const updateData: any = { ...updates };
+      
+      // Convert Date objects to ISO strings for database storage
+      if (updateData.last_touch instanceof Date) {
+        updateData.last_touch = updateData.last_touch.toISOString().split('T')[0];
+      }
+      if (updateData.next_touch instanceof Date) {
+        updateData.next_touch = updateData.next_touch.toISOString().split('T')[0];
+      }
+
+      const { data, error } = await supabase
+        .from('contacts')
+        .update(updateData)
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating contact:', error);
+        return { error };
+      }
+
+      const updatedContact = {
+        ...data,
+        last_touch: data.last_touch ? new Date(data.last_touch) : undefined,
+        next_touch: data.next_touch ? new Date(data.next_touch) : undefined,
+        created_at: new Date(data.created_at),
+        updated_at: new Date(data.updated_at),
+      };
+
+      setContacts(prev => prev.map(c => c.id === id ? updatedContact : c));
+      return { data: updatedContact };
+    } catch (error) {
+      console.error('Error updating contact:', error);
+      return { error };
+    }
+  };
+
+  const deleteContact = async (id: string) => {
+    if (!user) return { error: new Error('User not authenticated') };
+
+    try {
+      const { error } = await supabase
+        .from('contacts')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('Error deleting contact:', error);
+        return { error };
+      }
+
+      setContacts(prev => prev.filter(c => c.id !== id));
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting contact:', error);
+      return { error };
+    }
+  };
+
+  const markSent = async (id: string) => {
+    const today = new Date();
+    const nextWeek = new Date();
+    nextWeek.setDate(today.getDate() + 7);
+
+    return updateContact(id, {
+      last_touch: today,
+      next_touch: nextWeek,
+    });
+  };
+
+  const snoozeContact = async (id: string, days: number = 7) => {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+
+    return updateContact(id, {
+      next_touch: futureDate,
+    });
+  };
+
+  const skipContact = async (id: string) => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    return updateContact(id, {
+      next_touch: tomorrow,
+    });
+  };
+
   const getDueContacts = () => {
     const now = new Date();
     return contacts.filter(contact => {
-      if (!contact.next_due_at) return false;
-      return new Date(contact.next_due_at) <= now;
-    }).slice(0, 8); // Daily capacity default
-  };
-
-  const markContactSent = async (contactId: string, message: string) => {
-    try {
-      const now = new Date();
-      const contact = contacts.find(c => c.id === contactId);
-      if (!contact) return;
-
-      const nextDueAt = new Date();
-      nextDueAt.setDate(nextDueAt.getDate() + contact.frequency_days);
-
-      // For demo: Update local state
-      setContacts(prevContacts =>
-        prevContacts.map(c =>
-          c.id === contactId
-            ? {
-                ...c,
-                last_contacted_at: now.toISOString(),
-                next_due_at: nextDueAt.toISOString(),
-                updated_at: now.toISOString()
-              }
-            : c
-        )
-      );
-
-      // TODO: In production, update Supabase
-    } catch (err) {
-      console.error('Failed to mark contact as sent:', err);
-      throw err;
-    }
-  };
-
-  const snoozeContact = async (contactId: string) => {
-    try {
-      const contact = contacts.find(c => c.id === contactId);
-      if (!contact) return;
-
-      const snoozeDays = contact.segment === 'TOP5' ? 2 : 7;
-      const nextDueAt = new Date();
-      nextDueAt.setDate(nextDueAt.getDate() + snoozeDays);
-      const now = new Date();
-
-      setContacts(prevContacts =>
-        prevContacts.map(c =>
-          c.id === contactId
-            ? {
-                ...c,
-                next_due_at: nextDueAt.toISOString(),
-                updated_at: now.toISOString()
-              }
-            : c
-        )
-      );
-    } catch (err) {
-      console.error('Failed to snooze contact:', err);
-      throw err;
-    }
-  };
-
-  const skipContact = async (contactId: string) => {
-    try {
-      const contact = contacts.find(c => c.id === contactId);
-      if (!contact) return;
-
-      const nextDueAt = new Date();
-      nextDueAt.setDate(nextDueAt.getDate() + contact.frequency_days);
-      const now = new Date();
-
-      setContacts(prevContacts =>
-        prevContacts.map(c =>
-          c.id === contactId
-            ? {
-                ...c,
-                next_due_at: nextDueAt.toISOString(),
-                updated_at: now.toISOString()
-              }
-            : c
-        )
-      );
-    } catch (err) {
-      console.error('Failed to skip contact:', err);
-      throw err;
-    }
-  };
-
-  useEffect(() => {
-    fetchContacts();
-  }, []);
-
-  const addContact = async (contactData: Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at' | 'last_contacted_at' | 'next_due_at'>) => {
-    try {
-      const now = new Date();
-      const nextDueAt = new Date();
-      nextDueAt.setDate(nextDueAt.getDate() + contactData.frequency_days);
-
-      const newContact: Contact = {
-        ...contactData,
-        id: `manual-${Date.now()}`,
-        user_id: 'demo-user',
-        created_at: now.toISOString(),
-        updated_at: now.toISOString(),
-        last_contacted_at: undefined,
-        next_due_at: nextDueAt.toISOString(),
-      };
-
-      setContacts(prevContacts => [...prevContacts, newContact]);
-    } catch (err) {
-      console.error('Failed to add contact:', err);
-      throw err;
-    }
+      if (!contact.next_touch) return false;
+      return contact.next_touch <= now;
+    }).slice(0, 8);
   };
 
   return {
     contacts,
     loading,
-    error,
     dueContacts: getDueContacts(),
-    markContactSent,
+    addContact,
+    updateContact,
+    deleteContact,
+    markSent,
     snoozeContact,
     skipContact,
-    addContact,
-    refreshContacts: fetchContacts
+    refetch: loadContacts,
   };
 }
