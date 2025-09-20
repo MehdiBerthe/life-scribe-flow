@@ -8,15 +8,17 @@ import { Badge } from '@/components/ui/badge';
 import { NotebookPage } from '@/components/NotebookPage';
 import { storage, generateId, formatDate, formatTime, isToday } from '@/lib/storage';
 import { PhysicalLog } from '@/types';
-import { Activity, Plus, Moon, Dumbbell, Scale, Zap, Coffee } from 'lucide-react';
+import { Activity, Plus, Moon, Dumbbell, Scale, Zap, Coffee, Calculator, Utensils } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 const LOG_TYPES = [
   { value: 'sleep', label: 'Sleep', icon: Moon, unit: 'hours' },
   { value: 'workout', label: 'Workout', icon: Dumbbell, unit: 'minutes' },
-  { value: 'weight', label: 'Weight', icon: Scale, unit: 'lbs' },
+  { value: 'weight', label: 'Weight', icon: Scale, unit: 'kg' },
   { value: 'energy', label: 'Energy', icon: Zap, unit: '1-10' },
   { value: 'caffeine', label: 'Caffeine', icon: Coffee, unit: 'mg' },
+  { value: 'calories', label: 'Calories', icon: Calculator, unit: 'kcal' },
+  { value: 'meal', label: 'Meal', icon: Utensils, unit: '' },
 ] as const;
 
 export default function Physical() {
@@ -25,7 +27,9 @@ export default function Physical() {
   const [formData, setFormData] = useState({
     kind: '' as PhysicalLog['kind'] | '',
     valueNum: '',
-    notes: ''
+    notes: '',
+    mealType: '' as 'one-meal' | 'multiple-meals' | '',
+    mealDescription: ''
   });
 
   useEffect(() => {
@@ -44,7 +48,9 @@ export default function Physical() {
       date: new Date(),
       kind: formData.kind,
       valueNum: formData.valueNum ? parseFloat(formData.valueNum) : undefined,
-      notes: formData.notes.trim() || undefined
+      notes: formData.notes.trim() || undefined,
+      mealType: formData.kind === 'meal' && formData.mealType ? formData.mealType : undefined,
+      mealDescription: formData.kind === 'meal' && formData.mealDescription.trim() ? formData.mealDescription.trim() : undefined
     };
 
     const updatedLogs = [newLog, ...logs];
@@ -52,7 +58,7 @@ export default function Physical() {
     storage.physicalLogs.save(updatedLogs);
 
     // Reset form
-    setFormData({ kind: '', valueNum: '', notes: '' });
+    setFormData({ kind: '', valueNum: '', notes: '', mealType: '', mealDescription: '' });
     setShowForm(false);
     
     const logType = LOG_TYPES.find(type => type.value === formData.kind);
@@ -73,7 +79,9 @@ export default function Physical() {
       'workout': 'bg-red-100 text-red-800',
       'weight': 'bg-purple-100 text-purple-800',
       'energy': 'bg-yellow-100 text-yellow-800',
-      'caffeine': 'bg-orange-100 text-orange-800'
+      'caffeine': 'bg-orange-100 text-orange-800',
+      'calories': 'bg-green-100 text-green-800',
+      'meal': 'bg-pink-100 text-pink-800'
     };
     return colors[kind] || 'bg-muted text-muted-foreground';
   };
@@ -118,7 +126,7 @@ export default function Physical() {
       </div>
 
       {/* Today's Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-7 gap-4">
         {LOG_TYPES.map((logType) => {
           const Icon = logType.icon;
           const stat = todayStats[logType.value];
@@ -130,7 +138,10 @@ export default function Physical() {
                   <div className="text-center">
                     <Icon className="h-8 w-8 mx-auto text-primary mb-2" />
                     <div className="text-lg font-bold text-ink">
-                      {stat.lastValue !== undefined ? `${stat.lastValue} ${logType.unit}` : '—'}
+                      {logType.value === 'meal' 
+                        ? (stat.count > 0 ? `${stat.count} meal${stat.count > 1 ? 's' : ''}` : '—')
+                        : (stat.lastValue !== undefined ? `${stat.lastValue} ${logType.unit}` : '—')
+                      }
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {logType.label} Today
@@ -177,22 +188,50 @@ export default function Physical() {
                     </Select>
                   </div>
                   
+                  {formData.kind !== 'meal' ? (
+                    <div>
+                      <label className="text-sm font-medium text-ink">
+                        Value {formData.kind && `(${getLogUnit(formData.kind)})`}
+                      </label>
+                      <Input
+                        type="number"
+                        step={formData.kind === 'weight' ? '0.1' : formData.kind === 'energy' ? '1' : '0.01'}
+                        min={formData.kind === 'energy' ? '1' : '0'}
+                        max={formData.kind === 'energy' ? '10' : undefined}
+                        value={formData.valueNum}
+                        onChange={(e) => setFormData(prev => ({ ...prev, valueNum: e.target.value }))}
+                        placeholder={formData.kind ? `Enter ${getLogUnit(formData.kind)}` : 'Select type first'}
+                        disabled={!formData.kind}
+                      />
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="text-sm font-medium text-ink">Meal Pattern</label>
+                      <Select value={formData.mealType} onValueChange={(value: 'one-meal' | 'multiple-meals') => setFormData(prev => ({ ...prev, mealType: value }))}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select meal pattern..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="one-meal">One Meal (OMAD)</SelectItem>
+                          <SelectItem value="multiple-meals">Multiple Meals</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Meal Description - only show for meal type */}
+                {formData.kind === 'meal' && (
                   <div>
-                    <label className="text-sm font-medium text-ink">
-                      Value {formData.kind && `(${getLogUnit(formData.kind)})`}
-                    </label>
-                    <Input
-                      type="number"
-                      step={formData.kind === 'weight' ? '0.1' : formData.kind === 'energy' ? '1' : '0.01'}
-                      min={formData.kind === 'energy' ? '1' : '0'}
-                      max={formData.kind === 'energy' ? '10' : undefined}
-                      value={formData.valueNum}
-                      onChange={(e) => setFormData(prev => ({ ...prev, valueNum: e.target.value }))}
-                      placeholder={formData.kind ? `Enter ${getLogUnit(formData.kind)}` : 'Select type first'}
-                      disabled={!formData.kind}
+                    <label className="text-sm font-medium text-ink">What did you eat?</label>
+                    <Textarea
+                      value={formData.mealDescription}
+                      onChange={(e) => setFormData(prev => ({ ...prev, mealDescription: e.target.value }))}
+                      placeholder="Describe what you ate..."
+                      rows={3}
                     />
                   </div>
-                </div>
+                )}
 
                 <div>
                   <label className="text-sm font-medium text-ink">Notes (optional)</label>
@@ -247,16 +286,31 @@ export default function Physical() {
                           <Badge className={getLogColor(log.kind)}>
                             {logType?.label}
                           </Badge>
-                          {log.valueNum !== undefined && (
+                          {log.kind === 'meal' ? (
                             <span className="font-medium text-ink">
-                              {log.valueNum} {getLogUnit(log.kind)}
+                              {log.mealType === 'one-meal' ? 'One Meal (OMAD)' : 'Multiple Meals'}
                             </span>
+                          ) : (
+                            log.valueNum !== undefined && (
+                              <span className="font-medium text-ink">
+                                {log.valueNum} {getLogUnit(log.kind)}
+                              </span>
+                            )
                           )}
                         </div>
                         
                         <div className="text-sm text-muted-foreground mb-2">
                           {formatDate(log.date)} at {formatTime(log.date)}
                         </div>
+                        
+                        {log.kind === 'meal' && log.mealDescription && (
+                          <div className="bg-muted/30 rounded p-2 mb-2">
+                            <h5 className="text-sm font-medium text-ink mb-1">What I ate:</h5>
+                            <p className="text-sm text-ink whitespace-pre-wrap">
+                              {log.mealDescription}
+                            </p>
+                          </div>
+                        )}
                         
                         {log.notes && (
                           <p className="text-sm text-ink whitespace-pre-wrap">

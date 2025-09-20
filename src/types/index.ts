@@ -72,9 +72,11 @@ export interface Envelope {
 export interface PhysicalLog {
   id: string;
   date: Date;
-  kind: 'sleep' | 'workout' | 'weight' | 'energy' | 'caffeine';
+  kind: 'sleep' | 'workout' | 'weight' | 'energy' | 'caffeine' | 'calories' | 'meal';
   valueNum?: number;
   notes?: string;
+  mealType?: 'one-meal' | 'multiple-meals';
+  mealDescription?: string;
 }
 
 export interface WeeklyPlan {
