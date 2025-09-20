@@ -29,7 +29,7 @@ export type Database = {
           phone: string | null
           segment: string | null
           updated_at: string
-          user_id: string
+          user_id: string | null
           working_on: string | null
         }
         Insert: {
@@ -46,7 +46,7 @@ export type Database = {
           phone?: string | null
           segment?: string | null
           updated_at?: string
-          user_id: string
+          user_id?: string | null
           working_on?: string | null
         }
         Update: {
@@ -63,7 +63,7 @@ export type Database = {
           phone?: string | null
           segment?: string | null
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
           working_on?: string | null
         }
         Relationships: []

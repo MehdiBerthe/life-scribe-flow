@@ -1,14 +1,12 @@
 import { ContactCard } from '@/components/ContactCard';
 import { useContacts } from '@/hooks/useContacts';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
-import { Users, Calendar, LogOut } from 'lucide-react';
+import { Users, Calendar } from 'lucide-react';
 
 export default function Social() {
   const { contacts, loading, dueContacts, markSent, snoozeContact, skipContact } = useContacts();
-  const { signOut } = useAuth();
 
   const handleMarkSent = async (contactId: string) => {
     try {
@@ -58,33 +56,12 @@ export default function Social() {
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      await signOut();
-      toast({
-        title: "Signed Out",
-        description: "You have been successfully signed out.",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to sign out.",
-        variant: "destructive",
-      });
-    }
-  };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="h-6 w-6 text-foreground" />
-          <h1 className="text-3xl font-bold text-foreground">Social CRM</h1>
-        </div>
-        <Button variant="outline" onClick={handleSignOut} className="flex items-center gap-2">
-          <LogOut size={16} />
-          Sign Out
-        </Button>
+      <div className="flex items-center gap-2">
+        <Users className="h-6 w-6 text-foreground" />
+        <h1 className="text-3xl font-bold text-foreground">Social CRM</h1>
       </div>
 
       {/* Quick Stats */}

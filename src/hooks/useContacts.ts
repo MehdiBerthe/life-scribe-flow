@@ -1,25 +1,16 @@
 import { useState, useEffect } from 'react';
 import { Contact } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './useAuth';
 
 export function useContacts() {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
 
   const loadContacts = async () => {
-    if (!user) {
-      setContacts([]);
-      setLoading(false);
-      return;
-    }
-
     try {
       const { data, error } = await supabase
         .from('contacts')
         .select('*')
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -45,17 +36,14 @@ export function useContacts() {
 
   useEffect(() => {
     loadContacts();
-  }, [user]);
+  }, []);
 
   const addContact = async (contactData: Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return { error: new Error('User not authenticated') };
-
     try {
       const { data, error } = await supabase
         .from('contacts')
         .insert([{
           ...contactData,
-          user_id: user.id,
           last_touch: contactData.last_touch?.toISOString().split('T')[0],
           next_touch: contactData.next_touch?.toISOString().split('T')[0],
         }])
@@ -84,8 +72,6 @@ export function useContacts() {
   };
 
   const updateContact = async (id: string, updates: Partial<Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>>) => {
-    if (!user) return { error: new Error('User not authenticated') };
-
     try {
       const updateData: any = { ...updates };
       
@@ -101,7 +87,6 @@ export function useContacts() {
         .from('contacts')
         .update(updateData)
         .eq('id', id)
-        .eq('user_id', user.id)
         .select()
         .single();
 
@@ -127,14 +112,11 @@ export function useContacts() {
   };
 
   const deleteContact = async (id: string) => {
-    if (!user) return { error: new Error('User not authenticated') };
-
     try {
       const { error } = await supabase
         .from('contacts')
         .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('id', id);
 
       if (error) {
         console.error('Error deleting contact:', error);
