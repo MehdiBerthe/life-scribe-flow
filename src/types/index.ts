@@ -33,6 +33,20 @@ export interface WeeklyReview {
   commitments?: Record<string, string>;
 }
 
+export interface EndOfDayReview {
+  id: string;
+  date: Date;
+  wentWell: string;
+  couldImprove: string;
+  keyAccomplishments?: string;
+  lessonsLearned?: string;
+  tomorrowsFocus?: string;
+  mood: 1 | 2 | 3 | 4 | 5;
+  energyLevel: 1 | 2 | 3 | 4 | 5;
+  gratitude?: string;
+  createdAt: Date;
+}
+
 export interface DailyGoal {
   id: string;
   date: Date;

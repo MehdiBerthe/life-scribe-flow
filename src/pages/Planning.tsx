@@ -4,17 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { storage, generateId, formatDate, isToday, getWeekStart } from '@/lib/storage';
-import { DailyGoal, WeeklyReview } from '@/types';
-import { Target, BarChart3, Plus, CheckCircle2, Calendar } from 'lucide-react';
+import { DailyGoal, WeeklyReview, EndOfDayReview } from '@/types';
+import { Target, BarChart3, Plus, CheckCircle2, Calendar, Moon, Star } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function Planning() {
   const [goals, setGoals] = useState<DailyGoal[]>([]);
   const [reviews, setReviews] = useState<WeeklyReview[]>([]);
+  const [endOfDayReviews, setEndOfDayReviews] = useState<EndOfDayReview[]>([]);
   const [newGoal, setNewGoal] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [showDayReviewForm, setShowDayReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     summary: '',
     commitments: {
@@ -27,13 +30,26 @@ export default function Planning() {
       Financial: ''
     }
   });
+  
+  const [dayReviewForm, setDayReviewForm] = useState({
+    wentWell: '',
+    couldImprove: '',
+    keyAccomplishments: '',
+    lessonsLearned: '',
+    tomorrowsFocus: '',
+    mood: [3] as number[],
+    energyLevel: [3] as number[],
+    gratitude: '',
+  });
 
   useEffect(() => {
     const loadedGoals = storage.dailyGoals.getAll();
     const loadedReviews = storage.weeklyReviews.getAll();
+    const loadedDayReviews = storage.endOfDayReviews.getAll();
     
     setGoals(loadedGoals.sort((a, b) => b.date.getTime() - a.date.getTime()));
     setReviews(loadedReviews.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
+    setEndOfDayReviews(loadedDayReviews.sort((a, b) => b.date.getTime() - a.date.getTime()));
   }, []);
 
   const todayGoals = goals.filter(goal => isToday(goal.date));
@@ -112,6 +128,53 @@ export default function Planning() {
     });
   };
 
+  const addDayReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!dayReviewForm.wentWell.trim() || !dayReviewForm.couldImprove.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in what went well and what could improve.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const review: EndOfDayReview = {
+      id: generateId(),
+      date: new Date(),
+      wentWell: dayReviewForm.wentWell.trim(),
+      couldImprove: dayReviewForm.couldImprove.trim(),
+      keyAccomplishments: dayReviewForm.keyAccomplishments.trim() || undefined,
+      lessonsLearned: dayReviewForm.lessonsLearned.trim() || undefined,
+      tomorrowsFocus: dayReviewForm.tomorrowsFocus.trim() || undefined,
+      mood: dayReviewForm.mood[0] as 1 | 2 | 3 | 4 | 5,
+      energyLevel: dayReviewForm.energyLevel[0] as 1 | 2 | 3 | 4 | 5,
+      gratitude: dayReviewForm.gratitude.trim() || undefined,
+      createdAt: new Date(),
+    };
+
+    const updatedReviews = [review, ...endOfDayReviews];
+    setEndOfDayReviews(updatedReviews);
+    storage.endOfDayReviews.save(updatedReviews);
+    
+    setDayReviewForm({
+      wentWell: '',
+      couldImprove: '',
+      keyAccomplishments: '',
+      lessonsLearned: '',
+      tomorrowsFocus: '',
+      mood: [3],
+      energyLevel: [3],
+      gratitude: '',
+    });
+    setShowDayReviewForm(false);
+    
+    toast({
+      title: "Day Review Added",
+      description: "Your daily reflection has been saved."
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -120,10 +183,14 @@ export default function Planning() {
       </div>
 
       <Tabs defaultValue="goals" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="goals" className="flex items-center gap-2">
             <Target size={16} />
             Daily Goals
+          </TabsTrigger>
+          <TabsTrigger value="day-review" className="flex items-center gap-2">
+            <Moon size={16} />
+            End of Day
           </TabsTrigger>
           <TabsTrigger value="review" className="flex items-center gap-2">
             <BarChart3 size={16} />
@@ -250,6 +317,217 @@ export default function Planning() {
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        <TabsContent value="day-review" className="space-y-6">
+          {/* Add Day Review Button */}
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-foreground">End of Day Reviews</h2>
+            <Button 
+              onClick={() => setShowDayReviewForm(!showDayReviewForm)}
+              className="flex items-center gap-2"
+            >
+              <Plus size={16} />
+              New Day Review
+            </Button>
+          </div>
+
+          {/* Add Day Review Form */}
+          {showDayReviewForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>End of Day Review</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={addDayReview} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">What went well today? *</label>
+                      <Textarea
+                        value={dayReviewForm.wentWell}
+                        onChange={(e) => setDayReviewForm(prev => ({ ...prev, wentWell: e.target.value }))}
+                        placeholder="Celebrate your wins, big and small..."
+                        rows={3}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground">What could have been better? *</label>
+                      <Textarea
+                        value={dayReviewForm.couldImprove}
+                        onChange={(e) => setDayReviewForm(prev => ({ ...prev, couldImprove: e.target.value }))}
+                        placeholder="Areas for improvement..."
+                        rows={3}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Key Accomplishments</label>
+                    <Textarea
+                      value={dayReviewForm.keyAccomplishments}
+                      onChange={(e) => setDayReviewForm(prev => ({ ...prev, keyAccomplishments: e.target.value }))}
+                      placeholder="What did you accomplish today?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Lessons Learned</label>
+                    <Textarea
+                      value={dayReviewForm.lessonsLearned}
+                      onChange={(e) => setDayReviewForm(prev => ({ ...prev, lessonsLearned: e.target.value }))}
+                      placeholder="What did you learn today?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Tomorrow's Focus</label>
+                    <Textarea
+                      value={dayReviewForm.tomorrowsFocus}
+                      onChange={(e) => setDayReviewForm(prev => ({ ...prev, tomorrowsFocus: e.target.value }))}
+                      placeholder="What are your priorities for tomorrow?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-3 block">
+                        Mood (1-5): {dayReviewForm.mood[0]}
+                      </label>
+                      <Slider
+                        value={dayReviewForm.mood}
+                        onValueChange={(value) => setDayReviewForm(prev => ({ ...prev, mood: value }))}
+                        max={5}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>😞 Poor</span>
+                        <span>😐 Okay</span>
+                        <span>😊 Great</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-3 block">
+                        Energy Level (1-5): {dayReviewForm.energyLevel[0]}
+                      </label>
+                      <Slider
+                        value={dayReviewForm.energyLevel}
+                        onValueChange={(value) => setDayReviewForm(prev => ({ ...prev, energyLevel: value }))}
+                        max={5}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>🔋 Low</span>
+                        <span>⚡ Medium</span>
+                        <span>🚀 High</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Gratitude</label>
+                    <Textarea
+                      value={dayReviewForm.gratitude}
+                      onChange={(e) => setDayReviewForm(prev => ({ ...prev, gratitude: e.target.value }))}
+                      placeholder="What are you grateful for today?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit">Save Day Review</Button>
+                    <Button type="button" variant="outline" onClick={() => setShowDayReviewForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Previous Day Reviews */}
+          <div className="space-y-4">
+            {endOfDayReviews.length === 0 ? (
+              <Card>
+                <CardContent className="pt-12">
+                  <div className="text-center">
+                    <Moon size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No day reviews yet</h3>
+                    <p className="text-muted-foreground">Start reflecting on your day to build self-awareness.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              endOfDayReviews.slice(0, 10).map((review) => (
+                <Card key={review.id}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="h-5 w-5" />
+                      {formatDate(review.date)}
+                      <div className="flex items-center gap-4 ml-auto">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>😊 {review.mood}/5</span>
+                          <span>⚡ {review.energyLevel}/5</span>
+                        </div>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">✅ What went well</h4>
+                          <p className="text-sm text-muted-foreground">{review.wentWell}</p>
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">🔄 Could improve</h4>
+                          <p className="text-sm text-muted-foreground">{review.couldImprove}</p>
+                        </div>
+                      </div>
+                      
+                      {review.keyAccomplishments && (
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">🏆 Key Accomplishments</h4>
+                          <p className="text-sm text-muted-foreground">{review.keyAccomplishments}</p>
+                        </div>
+                      )}
+                      
+                      {review.lessonsLearned && (
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">💡 Lessons Learned</h4>
+                          <p className="text-sm text-muted-foreground">{review.lessonsLearned}</p>
+                        </div>
+                      )}
+                      
+                      {review.tomorrowsFocus && (
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">🎯 Tomorrow's Focus</h4>
+                          <p className="text-sm text-muted-foreground">{review.tomorrowsFocus}</p>
+                        </div>
+                      )}
+                      
+                      {review.gratitude && (
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">🙏 Gratitude</h4>
+                          <p className="text-sm text-muted-foreground">{review.gratitude}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
         </TabsContent>
 
         <TabsContent value="review" className="space-y-6">

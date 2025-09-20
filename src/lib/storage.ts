@@ -4,6 +4,7 @@ import {
   ReadingItem, 
   ReadingNote, 
   WeeklyReview, 
+  EndOfDayReview,
   DailyGoal, 
   Transaction, 
   Envelope, 
@@ -16,6 +17,7 @@ const STORAGE_KEYS = {
   READING: 'lifeos_reading',
   READING_NOTES: 'lifeos_reading_notes',
   WEEKLY_REVIEWS: 'lifeos_weekly_reviews',
+  END_OF_DAY_REVIEWS: 'lifeos_end_of_day_reviews',
   DAILY_GOALS: 'lifeos_daily_goals',
   TRANSACTIONS: 'lifeos_transactions',
   ENVELOPES: 'lifeos_envelopes',
@@ -69,6 +71,10 @@ export const storage = {
   weeklyReviews: {
     getAll: (): WeeklyReview[] => getFromStorage(STORAGE_KEYS.WEEKLY_REVIEWS),
     save: (reviews: WeeklyReview[]) => saveToStorage(STORAGE_KEYS.WEEKLY_REVIEWS, reviews),
+  },
+  endOfDayReviews: {
+    getAll: (): EndOfDayReview[] => getFromStorage(STORAGE_KEYS.END_OF_DAY_REVIEWS),
+    save: (reviews: EndOfDayReview[]) => saveToStorage(STORAGE_KEYS.END_OF_DAY_REVIEWS, reviews),
   },
   dailyGoals: {
     getAll: (): DailyGoal[] => getFromStorage(STORAGE_KEYS.DAILY_GOALS),
