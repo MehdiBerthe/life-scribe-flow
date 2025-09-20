@@ -12,6 +12,7 @@ export interface ReadingItem {
   id: string;
   title: string;
   author?: string;
+  category?: string;
   source: string;
   status: 'queued' | 'reading' | 'completed';
   progressPct: number;
@@ -78,4 +79,21 @@ export const JOURNAL_AREAS = [
   'Social',
   'Professional',
   'Financial'
+] as const;
+
+export const BOOK_CATEGORIES = [
+  'Fiction',
+  'Non-Fiction',
+  'Biography',
+  'Science',
+  'Technology',
+  'Business',
+  'Self-Help',
+  'Philosophy',
+  'History',
+  'Health',
+  'Finance',
+  'Psychology',
+  'Education',
+  'Other'
 ] as const;

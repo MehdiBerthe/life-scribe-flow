@@ -8,24 +8,27 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { NotebookPage } from '@/components/NotebookPage';
 import { storage, generateId, formatDate, formatTime } from '@/lib/storage';
-import { ReadingItem, ReadingNote } from '@/types';
-import { BookOpen, Plus, FileText, ExternalLink, Lightbulb } from 'lucide-react';
+import { ReadingItem, ReadingNote, BOOK_CATEGORIES } from '@/types';
+import { BookOpen, Plus, FileText, ExternalLink, Lightbulb, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function Reading() {
   const [items, setItems] = useState<ReadingItem[]>([]);
   const [notes, setNotes] = useState<ReadingNote[]>([]);
   const [showBookForm, setShowBookForm] = useState(false);
+  const [editingBook, setEditingBook] = useState<ReadingItem | null>(null);
   const [showNoteForm, setShowNoteForm] = useState<string | null>(null);
   
   const [bookForm, setBookForm] = useState<{
     title: string;
     author: string;
+    category: string;
     pdfUrl: string;
     status: ReadingItem['status'];
   }>({
     title: '',
     author: '',
+    category: '',
     pdfUrl: '',
     status: 'queued'
   });
@@ -51,6 +54,7 @@ export default function Reading() {
       id: generateId(),
       title: bookForm.title.trim(),
       author: bookForm.author.trim() || undefined,
+      category: bookForm.category.trim() || undefined,
       source: 'manual',
       status: bookForm.status,
       progressPct: bookForm.status === 'completed' ? 100 : bookForm.status === 'reading' ? 50 : 0,
@@ -61,8 +65,9 @@ export default function Reading() {
     setItems(updatedItems.sort((a, b) => a.title.localeCompare(b.title)));
     storage.reading.save(updatedItems);
 
-    setBookForm({ title: '', author: '', pdfUrl: '', status: 'queued' });
+    setBookForm({ title: '', author: '', category: '', pdfUrl: '', status: 'queued' });
     setShowBookForm(false);
+    setEditingBook(null);
     
     toast({
       title: "Book Added",
@@ -115,6 +120,50 @@ export default function Reading() {
     });
   };
 
+  const editBook = (book: ReadingItem) => {
+    setBookForm({
+      title: book.title,
+      author: book.author || '',
+      category: book.category || '',
+      pdfUrl: book.pdfUrl || '',
+      status: book.status
+    });
+    setEditingBook(book);
+    setShowBookForm(true);
+  };
+
+  const updateBook = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!bookForm.title.trim() || !editingBook) return;
+
+    const updatedItems = items.map(item => 
+      item.id === editingBook.id 
+        ? {
+            ...item,
+            title: bookForm.title.trim(),
+            author: bookForm.author.trim() || undefined,
+            category: bookForm.category.trim() || undefined,
+            pdfUrl: bookForm.pdfUrl.trim() || undefined,
+            status: bookForm.status,
+            progressPct: bookForm.status === 'completed' ? 100 : bookForm.status === 'reading' ? 50 : 0
+          }
+        : item
+    );
+    
+    setItems(updatedItems.sort((a, b) => a.title.localeCompare(b.title)));
+    storage.reading.save(updatedItems);
+
+    setBookForm({ title: '', author: '', category: '', pdfUrl: '', status: 'queued' });
+    setShowBookForm(false);
+    setEditingBook(null);
+    
+    toast({
+      title: "Book Updated",
+      description: `"${bookForm.title}" has been updated.`
+    });
+  };
+
   const getStatusColor = (status: ReadingItem['status']) => {
     const colors = {
       'queued': 'bg-secondary text-secondary-foreground',
@@ -144,15 +193,17 @@ export default function Reading() {
         </Button>
       </div>
 
-      {/* Add Book Form */}
+      {/* Add/Edit Book Form */}
       {showBookForm && (
         <NotebookPage showLines>
           <Card className="border-0 bg-transparent shadow-none">
             <CardHeader>
-              <CardTitle className="text-ink">Add New Book</CardTitle>
+              <CardTitle className="text-ink">
+                {editingBook ? 'Edit Book' : 'Add New Book'}
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <form onSubmit={addBook} className="space-y-4">
+              <form onSubmit={editingBook ? updateBook : addBook} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="text-sm font-medium text-ink">Title *</label>
@@ -174,6 +225,36 @@ export default function Reading() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-ink">Category</label>
+                    <Select value={bookForm.category} onValueChange={(value) => setBookForm(prev => ({ ...prev, category: value }))}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select category..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border z-50">
+                        {BOOK_CATEGORIES.map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-ink">Status</label>
+                    <Select value={bookForm.status} onValueChange={(value: ReadingItem['status']) => setBookForm(prev => ({ ...prev, status: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover border z-50">
+                        <SelectItem value="queued">Queued</SelectItem>
+                        <SelectItem value="reading">Reading</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
                 <div>
                   <label className="text-sm font-medium text-ink">PDF/Link URL (optional)</label>
                   <Input
@@ -184,23 +265,19 @@ export default function Reading() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-sm font-medium text-ink">Status</label>
-                  <Select value={bookForm.status} onValueChange={(value: ReadingItem['status']) => setBookForm(prev => ({ ...prev, status: value }))}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="queued">Queued</SelectItem>
-                      <SelectItem value="reading">Reading</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
                 <div className="flex gap-2">
-                  <Button type="submit">Add Book</Button>
-                  <Button type="button" variant="outline" onClick={() => setShowBookForm(false)}>
+                  <Button type="submit">
+                    {editingBook ? 'Update Book' : 'Add Book'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => {
+                      setShowBookForm(false);
+                      setEditingBook(null);
+                      setBookForm({ title: '', author: '', category: '', pdfUrl: '', status: 'queued' });
+                    }}
+                  >
                     Cancel
                   </Button>
                 </div>
@@ -240,6 +317,19 @@ export default function Reading() {
                         <Badge className={getStatusColor(item.status)}>
                           {item.status}
                         </Badge>
+                        {item.category && (
+                          <Badge variant="outline" className="text-xs">
+                            {item.category}
+                          </Badge>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => editBook(item)}
+                          className="h-6 w-6 p-0"
+                        >
+                          <Edit size={14} />
+                        </Button>
                         {item.pdfUrl && (
                           <a 
                             href={item.pdfUrl} 
@@ -270,7 +360,7 @@ export default function Reading() {
                         <SelectTrigger className="w-32">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover border z-50">
                           <SelectItem value="queued">Queued</SelectItem>
                           <SelectItem value="reading">Reading</SelectItem>
                           <SelectItem value="completed">Completed</SelectItem>
