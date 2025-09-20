@@ -6,9 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navigation } from "./components/Navigation";
 import Dashboard from "./pages/Dashboard";
 import Journal from "./pages/Journal";
-import Goals from "./pages/Goals";
+import Planning from "./pages/Planning";
 import Reading from "./pages/Reading";
-import Review from "./pages/Review";
 import Finance from "./pages/Finance";
 import Physical from "./pages/Physical";
 import Social from "./pages/Social";
@@ -28,12 +27,14 @@ const App = () => (
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/journal" element={<Journal />} />
-              <Route path="/goals" element={<Goals />} />
+              <Route path="/planning" element={<Planning />} />
               <Route path="/reading" element={<Reading />} />
-              <Route path="/review" element={<Review />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/physical" element={<Physical />} />
               <Route path="/social" element={<Social />} />
+              {/* Legacy routes for backwards compatibility */}
+              <Route path="/goals" element={<Planning />} />
+              <Route path="/review" element={<Planning />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

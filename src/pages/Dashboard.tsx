@@ -131,7 +131,7 @@ export default function Dashboard() {
               <div className="text-center py-8">
                 <Target size={48} className="mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">No priorities set for today</p>
-                <Link to="/goals">
+                <Link to="/planning">
                   <Button variant="outline" className="mt-4">
                     Set Your Priorities
                   </Button>

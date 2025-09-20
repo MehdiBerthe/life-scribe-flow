@@ -14,8 +14,7 @@ import {
 const navigation = [
   { name: 'Journal', href: '/journal', icon: PenTool },
   { name: 'Reading', href: '/reading', icon: BookOpen },
-  { name: 'Daily Goals', href: '/goals', icon: Target },
-  { name: 'Weekly Review', href: '/review', icon: BarChart3 },
+  { name: 'Planning', href: '/planning', icon: Target },
   { name: 'Finance', href: '/finance', icon: DollarSign },
   { name: 'Physical', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
