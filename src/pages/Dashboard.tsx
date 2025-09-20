@@ -47,7 +47,7 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-ink mb-2">LifeOS Dashboard</h1>
+        <h1 className="text-4xl font-bold text-foreground mb-2">LifeOS Dashboard</h1>
         <p className="text-muted-foreground">Your minimal life operating system</p>
       </div>
 
@@ -102,163 +102,91 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      {/* Navigation Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <NotebookPage>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-ink">
-                <PenTool className="h-5 w-5" />
-                Journal
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Capture thoughts across 7 life areas
-              </p>
-              <Link to="/journal">
-                <Button variant="outline" className="w-full">
-                  Open Journal
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </NotebookPage>
+      {/* Top 7 Priorities */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            Top 7 Priorities Today
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {todayGoals.length > 0 ? (
+              todayGoals.slice(0, 7).map((goal, index) => (
+                <div key={goal.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                  <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                    {index + 1}
+                  </span>
+                  <CheckCircle2 
+                    size={20} 
+                    className={goal.done ? "text-success" : "text-muted-foreground"} 
+                  />
+                  <span className={`flex-1 ${goal.done ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                    {goal.title}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <Target size={48} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No priorities set for today</p>
+                <Link to="/goals">
+                  <Button variant="outline" className="mt-4">
+                    Set Your Priorities
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-        <NotebookPage>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-ink">
-                <BookOpen className="h-5 w-5" />
-                Reading List
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Track books, notes, and learnings
-              </p>
-              <Link to="/reading">
-                <Button variant="outline" className="w-full">
-                  View Reading List
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </NotebookPage>
-
-        <NotebookPage>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-ink">
-                <Target className="h-5 w-5" />
-                Daily Goals
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Top 7 priorities for today
-              </p>
-              <Link to="/goals">
-                <Button variant="outline" className="w-full">
-                  Manage Goals
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </NotebookPage>
-
-        <NotebookPage>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-ink">
-                <BarChart3 className="h-5 w-5" />
-                Weekly Review
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Reflect and plan ahead
-              </p>
-              <Link to="/review">
-                <Button variant="outline" className="w-full">
-                  Start Review
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </NotebookPage>
-
-        <NotebookPage>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-ink">
-                <DollarSign className="h-5 w-5" />
-                Finance
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Track spending and budgets
-              </p>
-              <Link to="/finance">
-                <Button variant="outline" className="w-full">
-                  View Finances
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </NotebookPage>
-
-        <NotebookPage>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-ink">
-                <Activity className="h-5 w-5" />
-                Physical Logs
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Health and wellness tracking
-              </p>
-              <Link to="/physical">
-                <Button variant="outline" className="w-full">
-                  Log Activity
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </NotebookPage>
-      </div>
-
-      {/* Today's Goals Preview */}
-      {todayGoals.length > 0 && (
-        <NotebookPage showLines>
-          <Card className="border-0 bg-transparent shadow-none">
-            <CardHeader>
-              <CardTitle className="text-ink">Today's Goals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {todayGoals.slice(0, 7).map((goal) => (
-                  <div key={goal.id} className="flex items-center gap-2">
-                    <CheckCircle2 
-                      size={16} 
-                      className={goal.done ? "text-success" : "text-muted-foreground"} 
-                    />
-                    <span className={goal.done ? "line-through text-muted-foreground" : "text-ink"}>
-                      {goal.title}
+      {/* Journal Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PenTool className="h-5 w-5" />
+            Recent Journal Entries
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {recentEntries.length > 0 ? (
+              recentEntries.map((entry) => (
+                <div key={entry.id} className="p-4 rounded-lg bg-muted/30 border-l-4 border-primary">
+                  <div className="flex items-center justify-between mb-2">
+                    {entry.title && (
+                      <h4 className="font-medium text-foreground">{entry.title}</h4>
+                    )}
+                    <span className="text-sm text-muted-foreground">
+                      {formatDate(entry.createdAt)}
                     </span>
                   </div>
-                ))}
+                  <p className="text-muted-foreground text-sm line-clamp-2">
+                    {entry.content}
+                  </p>
+                  {entry.area && (
+                    <span className="inline-block mt-2 px-2 py-1 bg-secondary text-secondary-foreground rounded text-xs">
+                      {entry.area}
+                    </span>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8">
+                <PenTool size={48} className="mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">No journal entries yet</p>
+                <Link to="/journal">
+                  <Button variant="outline" className="mt-4">
+                    Start Writing
+                  </Button>
+                </Link>
               </div>
-              {todayGoals.length === 0 && (
-                <p className="text-muted-foreground italic">No goals set for today</p>
-              )}
-            </CardContent>
-          </Card>
-        </NotebookPage>
-      )}
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
