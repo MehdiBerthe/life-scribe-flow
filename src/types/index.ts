@@ -77,6 +77,25 @@ export interface PhysicalLog {
   notes?: string;
 }
 
+export interface WeeklyPlan {
+  id: string;
+  weekStart: Date;
+  priorities: string[];
+  createdAt: Date;
+}
+
+export interface EndOfWeekReview {
+  id: string;
+  weekStart: Date;
+  accomplishments: string;
+  challenges: string;
+  lessonsLearned?: string;
+  nextWeekFocus?: string;
+  overallSatisfaction: 1 | 2 | 3 | 4 | 5;
+  prioritiesCompleted: number;
+  createdAt: Date;
+}
+
 export interface Contact {
   id: string;
   user_id: string;

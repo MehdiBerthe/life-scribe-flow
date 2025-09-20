@@ -5,6 +5,8 @@ import {
   ReadingNote, 
   WeeklyReview, 
   EndOfDayReview,
+  WeeklyPlan,
+  EndOfWeekReview,
   DailyGoal, 
   Transaction, 
   Envelope, 
@@ -18,6 +20,8 @@ const STORAGE_KEYS = {
   READING_NOTES: 'lifeos_reading_notes',
   WEEKLY_REVIEWS: 'lifeos_weekly_reviews',
   END_OF_DAY_REVIEWS: 'lifeos_end_of_day_reviews',
+  WEEKLY_PLANS: 'lifeos_weekly_plans',
+  END_OF_WEEK_REVIEWS: 'lifeos_end_of_week_reviews',
   DAILY_GOALS: 'lifeos_daily_goals',
   TRANSACTIONS: 'lifeos_transactions',
   ENVELOPES: 'lifeos_envelopes',
@@ -93,6 +97,14 @@ export const storage = {
   physicalLogs: {
     getAll: (): PhysicalLog[] => getFromStorage(STORAGE_KEYS.PHYSICAL_LOGS),
     save: (logs: PhysicalLog[]) => saveToStorage(STORAGE_KEYS.PHYSICAL_LOGS, logs),
+  },
+  weeklyPlans: {
+    getAll: (): WeeklyPlan[] => getFromStorage(STORAGE_KEYS.WEEKLY_PLANS),
+    save: (plans: WeeklyPlan[]) => saveToStorage(STORAGE_KEYS.WEEKLY_PLANS, plans),
+  },
+  endOfWeekReviews: {
+    getAll: (): EndOfWeekReview[] => getFromStorage(STORAGE_KEYS.END_OF_WEEK_REVIEWS),
+    save: (reviews: EndOfWeekReview[]) => saveToStorage(STORAGE_KEYS.END_OF_WEEK_REVIEWS, reviews),
   },
   contacts: {
     getAll: (): Contact[] => getFromStorage(STORAGE_KEYS.CONTACTS),

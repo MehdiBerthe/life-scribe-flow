@@ -7,17 +7,22 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { storage, generateId, formatDate, isToday, getWeekStart } from '@/lib/storage';
-import { DailyGoal, WeeklyReview, EndOfDayReview } from '@/types';
-import { Target, BarChart3, Plus, CheckCircle2, Calendar, Moon, Star } from 'lucide-react';
+import { DailyGoal, WeeklyReview, EndOfDayReview, WeeklyPlan, EndOfWeekReview } from '@/types';
+import { Target, BarChart3, Plus, CheckCircle2, Calendar, Moon, Star, List, CheckSquare } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
 export default function Planning() {
   const [goals, setGoals] = useState<DailyGoal[]>([]);
   const [reviews, setReviews] = useState<WeeklyReview[]>([]);
   const [endOfDayReviews, setEndOfDayReviews] = useState<EndOfDayReview[]>([]);
+  const [weeklyPlans, setWeeklyPlans] = useState<WeeklyPlan[]>([]);
+  const [endOfWeekReviews, setEndOfWeekReviews] = useState<EndOfWeekReview[]>([]);
   const [newGoal, setNewGoal] = useState('');
+  const [newPriority, setNewPriority] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [showDayReviewForm, setShowDayReviewForm] = useState(false);
+  const [showWeekPlanForm, setShowWeekPlanForm] = useState(false);
+  const [showEndWeekReviewForm, setShowEndWeekReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({
     summary: '',
     commitments: {
@@ -42,18 +47,36 @@ export default function Planning() {
     gratitude: '',
   });
 
+  const [endWeekReviewForm, setEndWeekReviewForm] = useState({
+    accomplishments: '',
+    challenges: '',
+    lessonsLearned: '',
+    nextWeekFocus: '',
+    overallSatisfaction: [3] as number[],
+    prioritiesCompleted: [0] as number[],
+  });
+
   useEffect(() => {
     const loadedGoals = storage.dailyGoals.getAll();
     const loadedReviews = storage.weeklyReviews.getAll();
     const loadedDayReviews = storage.endOfDayReviews.getAll();
+    const loadedWeeklyPlans = storage.weeklyPlans.getAll();
+    const loadedEndWeekReviews = storage.endOfWeekReviews.getAll();
     
     setGoals(loadedGoals.sort((a, b) => b.date.getTime() - a.date.getTime()));
     setReviews(loadedReviews.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
     setEndOfDayReviews(loadedDayReviews.sort((a, b) => b.date.getTime() - a.date.getTime()));
+    setWeeklyPlans(loadedWeeklyPlans.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
+    setEndOfWeekReviews(loadedEndWeekReviews.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
   }, []);
 
   const todayGoals = goals.filter(goal => isToday(goal.date));
   const completedToday = todayGoals.filter(goal => goal.done).length;
+  
+  const currentWeekStart = getWeekStart(new Date());
+  const currentWeekPlan = weeklyPlans.find(plan => 
+    plan.weekStart.getTime() === currentWeekStart.getTime()
+  );
 
   const addGoal = (e: React.FormEvent) => {
     e.preventDefault();
@@ -175,6 +198,109 @@ export default function Planning() {
     });
   };
 
+  const addPriority = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPriority.trim()) return;
+
+    const weekStart = currentWeekStart;
+    let plan = currentWeekPlan;
+
+    if (!plan) {
+      plan = {
+        id: generateId(),
+        weekStart,
+        priorities: [newPriority.trim()],
+        createdAt: new Date(),
+      };
+      const updatedPlans = [plan, ...weeklyPlans];
+      setWeeklyPlans(updatedPlans);
+      storage.weeklyPlans.save(updatedPlans);
+    } else {
+      if (plan.priorities.length >= 7) {
+        toast({
+          title: "Maximum Priorities Reached",
+          description: "You can only have 7 priorities per week.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      const updatedPlan = {
+        ...plan,
+        priorities: [...plan.priorities, newPriority.trim()]
+      };
+      const updatedPlans = weeklyPlans.map(p => p.id === plan.id ? updatedPlan : p);
+      setWeeklyPlans(updatedPlans);
+      storage.weeklyPlans.save(updatedPlans);
+    }
+
+    setNewPriority('');
+    toast({
+      title: "Priority Added",
+      description: `"${newPriority.trim()}" added to this week's priorities.`
+    });
+  };
+
+  const removePriority = (priorityIndex: number) => {
+    if (!currentWeekPlan) return;
+
+    const updatedPlan = {
+      ...currentWeekPlan,
+      priorities: currentWeekPlan.priorities.filter((_, index) => index !== priorityIndex)
+    };
+    const updatedPlans = weeklyPlans.map(p => p.id === currentWeekPlan.id ? updatedPlan : p);
+    setWeeklyPlans(updatedPlans);
+    storage.weeklyPlans.save(updatedPlans);
+
+    toast({
+      title: "Priority Removed",
+      description: "Priority has been removed from this week."
+    });
+  };
+
+  const addEndWeekReview = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!endWeekReviewForm.accomplishments.trim() || !endWeekReviewForm.challenges.trim()) {
+      toast({
+        title: "Error",
+        description: "Please fill in accomplishments and challenges.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const review: EndOfWeekReview = {
+      id: generateId(),
+      weekStart: getWeekStart(new Date()),
+      accomplishments: endWeekReviewForm.accomplishments.trim(),
+      challenges: endWeekReviewForm.challenges.trim(),
+      lessonsLearned: endWeekReviewForm.lessonsLearned.trim() || undefined,
+      nextWeekFocus: endWeekReviewForm.nextWeekFocus.trim() || undefined,
+      overallSatisfaction: endWeekReviewForm.overallSatisfaction[0] as 1 | 2 | 3 | 4 | 5,
+      prioritiesCompleted: endWeekReviewForm.prioritiesCompleted[0],
+      createdAt: new Date(),
+    };
+
+    const updatedReviews = [review, ...endOfWeekReviews];
+    setEndOfWeekReviews(updatedReviews);
+    storage.endOfWeekReviews.save(updatedReviews);
+    
+    setEndWeekReviewForm({
+      accomplishments: '',
+      challenges: '',
+      lessonsLearned: '',
+      nextWeekFocus: '',
+      overallSatisfaction: [3],
+      prioritiesCompleted: [0],
+    });
+    setShowEndWeekReviewForm(false);
+    
+    toast({
+      title: "End of Week Review Added",
+      description: "Your weekly reflection has been saved."
+    });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2">
@@ -183,14 +309,22 @@ export default function Planning() {
       </div>
 
       <Tabs defaultValue="goals" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="goals" className="flex items-center gap-2">
             <Target size={16} />
             Daily Goals
           </TabsTrigger>
+          <TabsTrigger value="weekly-plan" className="flex items-center gap-2">
+            <List size={16} />
+            Weekly Plan
+          </TabsTrigger>
           <TabsTrigger value="day-review" className="flex items-center gap-2">
             <Moon size={16} />
             End of Day
+          </TabsTrigger>
+          <TabsTrigger value="end-week-review" className="flex items-center gap-2">
+            <CheckSquare size={16} />
+            End of Week
           </TabsTrigger>
           <TabsTrigger value="review" className="flex items-center gap-2">
             <BarChart3 size={16} />
@@ -313,6 +447,99 @@ export default function Planning() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="weekly-plan" className="space-y-6">
+          {/* Current Week Progress */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <List className="h-5 w-5" />
+                This Week's Priorities
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-lg font-medium">
+                  Week of {formatDate(currentWeekStart)}
+                </span>
+                <div className="text-sm text-muted-foreground">
+                  {currentWeekPlan ? `${currentWeekPlan.priorities.length}/7 priorities set` : '0/7 priorities set'}
+                </div>
+              </div>
+              
+              {/* Add Priority Form */}
+              {(!currentWeekPlan || currentWeekPlan.priorities.length < 7) && (
+                <form onSubmit={addPriority} className="flex gap-2 mb-4">
+                  <Input
+                    value={newPriority}
+                    onChange={(e) => setNewPriority(e.target.value)}
+                    placeholder="Add a priority for this week..."
+                    className="flex-1"
+                  />
+                  <Button type="submit" disabled={!newPriority.trim()}>
+                    Add Priority
+                  </Button>
+                </form>
+              )}
+
+              {/* Current Priorities */}
+              <div className="space-y-2">
+                {currentWeekPlan?.priorities.map((priority, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 rounded-lg bg-muted/30">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary text-primary-foreground text-sm font-medium flex items-center justify-center">
+                      {index + 1}
+                    </span>
+                    <span className="flex-1 text-foreground">{priority}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removePriority(index)}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                )) ?? (
+                  <div className="text-center py-8">
+                    <List size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <p className="text-muted-foreground">No priorities set for this week</p>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Previous Week Plans */}
+          {weeklyPlans.filter(plan => plan.weekStart.getTime() !== currentWeekStart.getTime()).length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Previous Week Plans</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {weeklyPlans
+                    .filter(plan => plan.weekStart.getTime() !== currentWeekStart.getTime())
+                    .slice(0, 5)
+                    .map((plan) => (
+                      <div key={plan.id} className="border-l-4 border-muted pl-4">
+                        <h4 className="font-medium text-foreground mb-2">Week of {formatDate(plan.weekStart)}</h4>
+                        <div className="space-y-1">
+                          {plan.priorities.map((priority, index) => (
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              <span className="flex-shrink-0 w-4 h-4 rounded-full bg-muted text-muted-foreground text-xs font-medium flex items-center justify-center">
+                                {index + 1}
+                              </span>
+                              <span className="text-foreground">{priority}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                 </div>
               </CardContent>
             </Card>
@@ -523,6 +750,181 @@ export default function Planning() {
                         </div>
                       )}
                     </div>
+                  </CardContent>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="end-week-review" className="space-y-6">
+          {/* Add End Week Review Button */}
+          <div className="flex justify-between items-center">
+            <h2 className="text-xl font-semibold text-foreground">End of Week Reviews</h2>
+            <Button 
+              onClick={() => setShowEndWeekReviewForm(!showEndWeekReviewForm)}
+              className="flex items-center gap-2"
+            >
+              <Plus size={16} />
+              New End of Week Review
+            </Button>
+          </div>
+
+          {/* Add End Week Review Form */}
+          {showEndWeekReviewForm && (
+            <Card>
+              <CardHeader>
+                <CardTitle>End of Week Review</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={addEndWeekReview} className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium text-foreground">What did you accomplish this week? *</label>
+                      <Textarea
+                        value={endWeekReviewForm.accomplishments}
+                        onChange={(e) => setEndWeekReviewForm(prev => ({ ...prev, accomplishments: e.target.value }))}
+                        placeholder="List your key accomplishments and wins..."
+                        rows={3}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground">What were the main challenges? *</label>
+                      <Textarea
+                        value={endWeekReviewForm.challenges}
+                        onChange={(e) => setEndWeekReviewForm(prev => ({ ...prev, challenges: e.target.value }))}
+                        placeholder="What obstacles or difficulties did you face?"
+                        rows={3}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Key Lessons Learned</label>
+                    <Textarea
+                      value={endWeekReviewForm.lessonsLearned}
+                      onChange={(e) => setEndWeekReviewForm(prev => ({ ...prev, lessonsLearned: e.target.value }))}
+                      placeholder="What insights or learnings did you gain?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-foreground">Next Week's Focus</label>
+                    <Textarea
+                      value={endWeekReviewForm.nextWeekFocus}
+                      onChange={(e) => setEndWeekReviewForm(prev => ({ ...prev, nextWeekFocus: e.target.value }))}
+                      placeholder="What will you focus on next week?"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-3 block">
+                        Overall Satisfaction (1-5): {endWeekReviewForm.overallSatisfaction[0]}
+                      </label>
+                      <Slider
+                        value={endWeekReviewForm.overallSatisfaction}
+                        onValueChange={(value) => setEndWeekReviewForm(prev => ({ ...prev, overallSatisfaction: value }))}
+                        max={5}
+                        min={1}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>😞 Poor</span>
+                        <span>😐 Okay</span>
+                        <span>😊 Excellent</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-foreground mb-3 block">
+                        Priorities Completed: {endWeekReviewForm.prioritiesCompleted[0]}/{currentWeekPlan?.priorities.length || 0}
+                      </label>
+                      <Slider
+                        value={endWeekReviewForm.prioritiesCompleted}
+                        onValueChange={(value) => setEndWeekReviewForm(prev => ({ ...prev, prioritiesCompleted: value }))}
+                        max={currentWeekPlan?.priorities.length || 7}
+                        min={0}
+                        step={1}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                        <span>None</span>
+                        <span>Some</span>
+                        <span>All</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button type="submit">Save Week Review</Button>
+                    <Button type="button" variant="outline" onClick={() => setShowEndWeekReviewForm(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Previous End of Week Reviews */}
+          <div className="space-y-4">
+            {endOfWeekReviews.length === 0 ? (
+              <Card>
+                <CardContent className="pt-12">
+                  <div className="text-center">
+                    <CheckSquare size={48} className="mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium text-foreground mb-2">No end of week reviews yet</h3>
+                    <p className="text-muted-foreground">Start reviewing your weekly progress and learnings.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              endOfWeekReviews.slice(0, 10).map((review) => (
+                <Card key={review.id}>
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Week of {formatDate(review.weekStart)}</span>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span>Satisfaction: {review.overallSatisfaction}/5</span>
+                        <span>Completed: {review.prioritiesCompleted}</span>
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h4 className="font-medium text-foreground mb-2">Accomplishments</h4>
+                        <p className="text-sm text-muted-foreground">{review.accomplishments}</p>
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-foreground mb-2">Challenges</h4>
+                        <p className="text-sm text-muted-foreground">{review.challenges}</p>
+                      </div>
+                    </div>
+                    
+                    {(review.lessonsLearned || review.nextWeekFocus) && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
+                        {review.lessonsLearned && (
+                          <div>
+                            <h4 className="font-medium text-foreground mb-2">Lessons Learned</h4>
+                            <p className="text-sm text-muted-foreground">{review.lessonsLearned}</p>
+                          </div>
+                        )}
+                        {review.nextWeekFocus && (
+                          <div>
+                            <h4 className="font-medium text-foreground mb-2">Next Week Focus</h4>
+                            <p className="text-sm text-muted-foreground">{review.nextWeekFocus}</p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               ))
