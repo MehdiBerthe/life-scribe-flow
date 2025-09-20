@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { storage, generateId, formatDate, isToday, getWeekStart } from '@/lib/storage';
-import { DailyGoal, EndOfDayReview, WeeklyPlan, EndOfWeekReview } from '@/types';
+import { DailyGoal, EndOfDayReview, WeeklyPlan, EndOfWeekReview, DAILY_CHECKLIST_SIMPLIFIED, WEEKLY_CHECKLIST } from '@/types';
 import { Target, BarChart3, Plus, CheckCircle2, Calendar, Moon, Star, List, CheckSquare } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -30,6 +30,7 @@ export default function Planning() {
     mood: [3] as number[],
     energyLevel: [3] as number[],
     gratitude: '',
+    dailyChecklist: {} as Record<string, boolean>,
   });
 
   const [endWeekReviewForm, setEndWeekReviewForm] = useState({
@@ -39,6 +40,7 @@ export default function Planning() {
     nextWeekFocus: '',
     overallSatisfaction: [3] as number[],
     prioritiesCompleted: [0] as number[],
+    weeklyChecklist: {} as Record<string, boolean>,
   });
 
   useEffect(() => {
@@ -52,6 +54,27 @@ export default function Planning() {
     setWeeklyPlans(loadedWeeklyPlans.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
     setEndOfWeekReviews(loadedEndWeekReviews.sort((a, b) => b.weekStart.getTime() - a.weekStart.getTime()));
   }, []);
+
+  // Initialize checklists when forms open
+  useEffect(() => {
+    if (showDayReviewForm) {
+      const initialDailyChecklist = {} as Record<string, boolean>;
+      DAILY_CHECKLIST_SIMPLIFIED.forEach(item => {
+        initialDailyChecklist[item] = false;
+      });
+      setDayReviewForm(prev => ({ ...prev, dailyChecklist: initialDailyChecklist }));
+    }
+  }, [showDayReviewForm]);
+
+  useEffect(() => {
+    if (showEndWeekReviewForm) {
+      const initialWeeklyChecklist = {} as Record<string, boolean>;
+      WEEKLY_CHECKLIST.forEach(item => {
+        initialWeeklyChecklist[item] = false;
+      });
+      setEndWeekReviewForm(prev => ({ ...prev, weeklyChecklist: initialWeeklyChecklist }));
+    }
+  }, [showEndWeekReviewForm]);
 
   const todayGoals = goals.filter(goal => isToday(goal.date));
   const completedToday = todayGoals.filter(goal => goal.done).length;
@@ -120,6 +143,7 @@ export default function Planning() {
       mood: dayReviewForm.mood[0] as 1 | 2 | 3 | 4 | 5,
       energyLevel: dayReviewForm.energyLevel[0] as 1 | 2 | 3 | 4 | 5,
       gratitude: dayReviewForm.gratitude.trim() || undefined,
+      dailyChecklist: dayReviewForm.dailyChecklist,
       createdAt: new Date(),
     };
 
@@ -136,6 +160,7 @@ export default function Planning() {
       mood: [3],
       energyLevel: [3],
       gratitude: '',
+      dailyChecklist: {},
     });
     setShowDayReviewForm(false);
     
@@ -225,6 +250,7 @@ export default function Planning() {
       nextWeekFocus: endWeekReviewForm.nextWeekFocus.trim() || undefined,
       overallSatisfaction: endWeekReviewForm.overallSatisfaction[0] as 1 | 2 | 3 | 4 | 5,
       prioritiesCompleted: endWeekReviewForm.prioritiesCompleted[0],
+      weeklyChecklist: endWeekReviewForm.weeklyChecklist,
       createdAt: new Date(),
     };
 
@@ -239,6 +265,7 @@ export default function Planning() {
       nextWeekFocus: '',
       overallSatisfaction: [3],
       prioritiesCompleted: [0],
+      weeklyChecklist: {},
     });
     setShowEndWeekReviewForm(false);
     
@@ -614,6 +641,33 @@ export default function Planning() {
                     />
                   </div>
 
+                  {/* Daily Checklist */}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Daily Checklist</label>
+                    <div className="space-y-2 max-h-64 overflow-y-auto bg-muted/20 p-4 rounded-lg">
+                      {DAILY_CHECKLIST_SIMPLIFIED.map((item, index) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <Checkbox
+                            id={`daily-${index}`}
+                            checked={dayReviewForm.dailyChecklist[item] || false}
+                            onCheckedChange={(checked) => 
+                              setDayReviewForm(prev => ({
+                                ...prev,
+                                dailyChecklist: {
+                                  ...prev.dailyChecklist,
+                                  [item]: checked === true
+                                }
+                              }))
+                            }
+                          />
+                          <label htmlFor={`daily-${index}`} className="text-sm text-foreground leading-5 cursor-pointer">
+                            {item}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button type="submit">Save Day Review</Button>
                     <Button type="button" variant="outline" onClick={() => setShowDayReviewForm(false)}>
@@ -690,6 +744,24 @@ export default function Planning() {
                         <div>
                           <h4 className="font-medium text-foreground mb-2">🙏 Gratitude</h4>
                           <p className="text-sm text-muted-foreground">{review.gratitude}</p>
+                        </div>
+                      )}
+                      
+                      {review.dailyChecklist && Object.keys(review.dailyChecklist).length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-foreground mb-2">✅ Daily Checklist</h4>
+                          <div className="grid grid-cols-1 gap-1 text-xs">
+                            {Object.entries(review.dailyChecklist).map(([item, completed]) => (
+                              <div key={item} className="flex items-center gap-2">
+                                <span className={`w-4 h-4 rounded-sm flex items-center justify-center ${completed ? 'bg-success text-success-foreground' : 'bg-muted'}`}>
+                                  {completed && '✓'}
+                                </span>
+                                <span className={completed ? 'text-foreground' : 'text-muted-foreground'}>
+                                  {item}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
@@ -805,6 +877,45 @@ export default function Planning() {
                     </div>
                   </div>
 
+                  {/* Weekly Checklist */}
+                  <div>
+                    <label className="text-sm font-medium text-foreground mb-3 block">Weekly Checklist</label>
+                    <div className="space-y-2 bg-muted/20 p-4 rounded-lg">
+                      {WEEKLY_CHECKLIST.map((item, index) => (
+                        <div key={index} className="flex items-start gap-3">
+                          <Checkbox
+                            id={`weekly-${index}`}
+                            checked={endWeekReviewForm.weeklyChecklist[item] || false}
+                            onCheckedChange={(checked) => 
+                              setEndWeekReviewForm(prev => ({
+                                ...prev,
+                                weeklyChecklist: {
+                                  ...prev.weeklyChecklist,
+                                  [item]: checked === true
+                                }
+                              }))
+                            }
+                          />
+                          <label htmlFor={`weekly-${index}`} className="text-sm text-foreground leading-5 cursor-pointer">
+                            {item}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Weekly Reporting */}
+                  <div className="bg-muted/20 p-4 rounded-lg space-y-2">
+                    <h4 className="text-sm font-medium text-foreground mb-2">Weekly Reporting Questions</h4>
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <p>• What did I accomplish this Week ?</p>
+                      <p>• What are my goals for next Week ?</p>
+                      <p>• What are the challenges I am facing ?</p>
+                      <p>• What are the solutions to these challenges ?</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground italic">Consider these questions when filling out the sections above.</p>
+                  </div>
+
                   <div className="flex gap-2">
                     <Button type="submit">Save Week Review</Button>
                     <Button type="button" variant="outline" onClick={() => setShowEndWeekReviewForm(false)}>
@@ -866,6 +977,24 @@ export default function Planning() {
                             <p className="text-sm text-muted-foreground">{review.nextWeekFocus}</p>
                           </div>
                         )}
+                      </div>
+                    )}
+                    
+                    {review.weeklyChecklist && Object.keys(review.weeklyChecklist).length > 0 && (
+                      <div className="pt-4 border-t">
+                        <h4 className="font-medium text-foreground mb-2">Weekly Checklist</h4>
+                        <div className="grid grid-cols-1 gap-1 text-xs">
+                          {Object.entries(review.weeklyChecklist).map(([item, completed]) => (
+                            <div key={item} className="flex items-center gap-2">
+                              <span className={`w-4 h-4 rounded-sm flex items-center justify-center ${completed ? 'bg-success text-success-foreground' : 'bg-muted'}`}>
+                                {completed && '✓'}
+                              </span>
+                              <span className={completed ? 'text-foreground' : 'text-muted-foreground'}>
+                                {item}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </CardContent>
