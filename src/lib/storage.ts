@@ -39,6 +39,8 @@ export function getFromStorage<T>(key: string, defaultValue: T[] = []): T[] {
       ...(item.weekStart && { weekStart: new Date(item.weekStart) }),
       ...(item.lastTouch && { lastTouch: new Date(item.lastTouch) }),
       ...(item.nextTouch && { nextTouch: new Date(item.nextTouch) }),
+      ...(item.last_touch && { last_touch: new Date(item.last_touch) }),
+      ...(item.next_touch && { next_touch: new Date(item.next_touch) }),
     }));
   } catch (error) {
     console.error(`Error loading ${key}:`, error);
