@@ -21,9 +21,12 @@ serve(async (req) => {
 
     console.log('Received audio file:', audioFile.name, audioFile.size, 'bytes');
 
+    // Create a new File with proper webm extension for OpenAI
+    const webmFile = new File([audioFile], 'audio.webm', { type: 'audio/webm' });
+
     // Prepare form data for OpenAI
     const openAIFormData = new FormData();
-    openAIFormData.append('file', audioFile);
+    openAIFormData.append('file', webmFile);
     openAIFormData.append('model', 'whisper-1');
     openAIFormData.append('response_format', 'json');
 
