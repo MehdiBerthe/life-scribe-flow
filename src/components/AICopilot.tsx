@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, Bot, User, Mic, MicOff, Send } from 'lucide-react';
+import { Loader2, User, Mic, MicOff, Send, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -29,7 +29,7 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
     {
       id: '1',
       role: 'assistant',
-      content: "Hi! I'm your AI Co-Pilot. I can help you manage your contacts, analyze your data, schedule reminders, and provide insights based on your journal, goals, and activities. What would you like to do today?",
+      content: "Hi! I'm Lexa, your AI assistant. I can help you manage your contacts, analyze your data, schedule reminders, and provide insights based on your journal, goals, and activities. What would you like to do today?",
       timestamp: new Date()
     }
   ]);
@@ -207,8 +207,8 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
               }`}
             >
               {message.role === 'assistant' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <Bot className="h-4 w-4 text-primary-foreground" />
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+                  <span className="text-xs font-semibold text-primary-foreground">L</span>
                 </div>
               )}
               
@@ -249,8 +249,8 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
           
           {isLoading && (
             <div className="flex gap-4 justify-start">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                <Bot className="h-4 w-4 text-primary-foreground" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+                <span className="text-xs font-semibold text-primary-foreground">L</span>
               </div>
               <div className="p-4 rounded-2xl bg-muted">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -269,7 +269,7 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Message AI Co-Pilot"
+              placeholder="Message Lexa"
               disabled={isLoading}
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
             />
