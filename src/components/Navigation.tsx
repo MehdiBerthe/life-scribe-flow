@@ -13,7 +13,8 @@ import {
   Target,
   BarChart3,
   Menu,
-  Home
+  Home,
+  Settings
 } from 'lucide-react';
 
 const navigation = [
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'Finance', href: '/finance', icon: DollarSign },
   { name: 'Physical', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export function Navigation() {

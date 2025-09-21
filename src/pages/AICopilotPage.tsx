@@ -3,13 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Brain, Database, MessageSquare, Zap, RefreshCw } from 'lucide-react';
+import { Brain, MessageSquare, Zap } from 'lucide-react';
 import AICopilot from '@/components/AICopilot';
-import { useVectorization } from '@/hooks/useVectorization';
 
 const AICopilotPage = () => {
   const [activeTab, setActiveTab] = useState('chat');
-  const { vectorizeAllData, vectorizeContacts, isVectorizing, progress } = useVectorization();
 
   return (
     <div className="container mx-auto py-8 space-y-6">
@@ -22,14 +20,10 @@ const AICopilotPage = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="chat" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Chat
-          </TabsTrigger>
-          <TabsTrigger value="setup" className="flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Data Setup
           </TabsTrigger>
           <TabsTrigger value="capabilities" className="flex items-center gap-2">
             <Brain className="h-4 w-4" />
@@ -41,56 +35,6 @@ const AICopilotPage = () => {
           <AICopilot />
         </TabsContent>
 
-        <TabsContent value="setup" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Data Vectorization
-              </CardTitle>
-              <CardDescription>
-                Process your data to enable AI semantic search and intelligent insights.
-                This creates embeddings of your journal entries, contacts, goals, and other data.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isVectorizing ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{progress.type}</span>
-                    <span>{progress.current}/{progress.total}</span>
-                  </div>
-                  <Progress 
-                    value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
-                    className="w-full"
-                  />
-                </div>
-              ) : (
-                <div className="flex gap-3">
-                  <Button onClick={vectorizeAllData} className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Vectorize All Data
-                  </Button>
-                  <Button variant="outline" onClick={vectorizeContacts} className="flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    Vectorize Contacts Only
-                  </Button>
-                </div>
-              )}
-              
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  <strong>First time?</strong> Click "Vectorize All Data" to process all your existing information.
-                  This may take a few minutes depending on how much data you have.
-                </p>
-                <p className="mt-2">
-                  <strong>Regular updates:</strong> The AI will automatically process new data as you add it,
-                  but you can manually refresh if needed.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="capabilities" className="mt-6">
           <div className="grid gap-6 md:grid-cols-2">
