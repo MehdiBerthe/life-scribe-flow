@@ -202,6 +202,36 @@ export type Database = {
         }
         Relationships: []
       }
+      llm_stats: {
+        Row: {
+          created_at: string | null
+          id: number
+          intent: string | null
+          mem_items: number
+          tokens_total: number
+          top_score: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          intent?: string | null
+          mem_items: number
+          tokens_total: number
+          top_score?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          intent?: string | null
+          mem_items?: number
+          tokens_total?: number
+          top_score?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       memories: {
         Row: {
           confidence: number | null
