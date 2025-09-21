@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, User, Mic, MicOff, Send, Sparkles, Phone, PhoneOff } from 'lucide-react';
+import { Loader2, User, Mic, MicOff, Send, Sparkles, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useRealtimeVoice } from '@/hooks/useRealtimeVoice';
@@ -39,7 +39,7 @@ const AICopilot: React.FC<AICopilotProps> = ({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [useRealtimeMode, setUseRealtimeMode] = useState(false);
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
   
   // Legacy voice states (for non-realtime mode)
   const [legacyIsListening, setLegacyIsListening] = useState(false);
@@ -65,9 +65,9 @@ const AICopilot: React.FC<AICopilotProps> = ({
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Use appropriate state based on mode
-  const isListening = useRealtimeMode ? realtimeIsListening : legacyIsListening;
-  const isSpeaking = useRealtimeMode ? realtimeIsSpeaking : legacyIsSpeaking;
+  // Use appropriate state based on modal mode
+  const isListening = showVoiceModal ? realtimeIsListening : legacyIsListening;
+  const isSpeaking = showVoiceModal ? realtimeIsSpeaking : legacyIsSpeaking;
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
@@ -122,16 +122,16 @@ const AICopilot: React.FC<AICopilotProps> = ({
     }
   }, [response]);
 
-  // Toggle realtime mode
-  const toggleRealtimeMode = useCallback(async () => {
-    if (useRealtimeMode) {
+  // Toggle voice modal
+  const toggleVoiceModal = useCallback(async () => {
+    if (showVoiceModal) {
       disconnect();
-      setUseRealtimeMode(false);
+      setShowVoiceModal(false);
     } else {
+      setShowVoiceModal(true);
       await connect();
-      setUseRealtimeMode(true);
     }
-  }, [useRealtimeMode, connect, disconnect]);
+  }, [showVoiceModal, connect, disconnect]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -309,7 +309,7 @@ const AICopilot: React.FC<AICopilotProps> = ({
       setMessages(prev => [...prev, assistantMessage]);
 
       // Speak the response (only in legacy mode)
-      if (data.message && !data.function_call && !useRealtimeMode) {
+      if (data.message && !data.function_call && !showVoiceModal) {
         speakText(data.message);
       }
 
@@ -363,30 +363,10 @@ const AICopilot: React.FC<AICopilotProps> = ({
   
   return (
     <div className="h-[calc(100vh-12rem)] w-full max-w-4xl mx-auto flex flex-col bg-background">
-      {/* Header with Realtime Toggle */}
-      <div className="flex items-center justify-between p-4 border-b">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold">AI Co-Pilot</h2>
-        </div>
-        
-        <Button
-          onClick={toggleRealtimeMode}
-          variant={useRealtimeMode ? "default" : "outline"}
-          size="sm"
-          className={`flex items-center gap-2 ${
-            useRealtimeMode ? 'bg-green-500 hover:bg-green-600' : ''
-          }`}
-        >
-          {useRealtimeMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
-          {useRealtimeMode ? 'End Call' : 'Voice Call'}
-          {isConnected && (
-            <div className="flex items-center gap-1">
-              {realtimeIsListening && <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />}
-              {realtimeIsSpeaking && <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
-            </div>
-          )}
-        </Button>
+      {/* Simple Header */}
+      <div className="flex items-center gap-2 p-4 border-b">
+        <Sparkles className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold">AI Co-Pilot</h2>
       </div>
 
       {/* Messages Area */}
@@ -434,94 +414,134 @@ const AICopilot: React.FC<AICopilotProps> = ({
               </div>
             </div>
           )}
-            
-          {/* Realtime Status */}
-          {useRealtimeMode && isConnected && (
-            <div className="flex justify-center">
-              <div className="bg-muted/50 backdrop-blur-sm rounded-full px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full ${realtimeIsListening ? 'bg-red-400 animate-pulse' : realtimeIsSpeaking ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
-                {realtimeIsListening ? 'Listening...' : realtimeIsSpeaking ? 'Speaking...' : 'Connected'}
-              </div>
-            </div>
-          )}
         </div>
         <div ref={messagesEndRef} />
       </ScrollArea>
       
-      {/* Input Area - Only show if not in realtime mode */}
-      {!useRealtimeMode && (
-        <div className="border-t bg-background">
-          <div className="max-w-3xl mx-auto p-4">
-            <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
-              <Input 
-                value={input} 
-                onChange={e => setInput(e.target.value)} 
-                onKeyPress={handleKeyPress} 
-                placeholder="Message Lexa" 
-                disabled={isLoading} 
-                className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
-              />
-              
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleListening} 
-                disabled={isLoading || legacyIsSpeaking} 
-                className={`h-8 w-8 rounded-full transition-colors ${
-                  legacyIsListening 
-                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
-                    : 'hover:bg-background'
-                }`}
-              >
-                {legacyIsListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </Button>
-              
-              <Button 
-                onClick={sendMessage} 
-                disabled={isLoading || !input.trim() || legacyIsSpeaking} 
-                size="icon" 
-                className="h-8 w-8 rounded-full"
-              >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </Button>
-            </div>
+      {/* Input Area */}
+      <div className="border-t bg-background">
+        <div className="max-w-3xl mx-auto p-4">
+          <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
+            <Input 
+              value={input} 
+              onChange={e => setInput(e.target.value)} 
+              onKeyPress={handleKeyPress} 
+              placeholder="Message Lexa" 
+              disabled={isLoading} 
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
+            />
+            
+            {/* Voice Mode Button */}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleVoiceModal} 
+              disabled={isLoading}
+              className="h-8 w-8 rounded-full hover:bg-background"
+            >
+              <Mic className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              onClick={sendMessage} 
+              disabled={isLoading || !input.trim()} 
+              size="icon" 
+              className="h-8 w-8 rounded-full"
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+            </Button>
           </div>
         </div>
-      )}
-      
-      {/* Realtime Text Input */}
-      {useRealtimeMode && isConnected && (
-        <div className="border-t bg-background">
-          <div className="max-w-3xl mx-auto p-4">
-            <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
-              <Input 
-                value={input} 
-                onChange={e => setInput(e.target.value)} 
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey && input.trim()) {
-                    e.preventDefault();
-                    sendText(input.trim());
-                    setInput('');
-                  }
-                }}
-                placeholder="Type to Lexa (or just speak)" 
-                className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
-              />
-              
-              <Button 
-                onClick={() => {
-                  if (input.trim()) {
-                    sendText(input.trim());
-                    setInput('');
-                  }
-                }}
-                disabled={!input.trim()} 
-                size="icon" 
-                className="h-8 w-8 rounded-full"
+      </div>
+
+      {/* Voice Modal */}
+      {showVoiceModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-background rounded-3xl p-8 max-w-sm w-full mx-4 text-center relative">
+            {/* Close Button */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleVoiceModal}
+              className="absolute top-4 right-4 h-8 w-8 rounded-full"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+
+            {/* Voice Visualization */}
+            <div className="mb-8 mt-4">
+              <div className={`w-32 h-32 mx-auto rounded-full transition-all duration-300 ${
+                realtimeIsListening 
+                  ? 'bg-gradient-to-br from-red-400 to-red-600 animate-pulse scale-110' 
+                  : realtimeIsSpeaking 
+                  ? 'bg-gradient-to-br from-green-400 to-green-600 animate-pulse scale-105'
+                  : 'bg-gradient-to-br from-blue-400 to-blue-600'
+              }`} />
+            </div>
+
+            {/* Status Text */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium mb-2">
+                {realtimeIsListening ? 'Listening...' : realtimeIsSpeaking ? 'Speaking...' : isConnected ? 'Connected' : 'Connecting...'}
+              </h3>
+              {transcript && (
+                <p className="text-sm text-muted-foreground bg-muted rounded-lg p-3 mb-4">
+                  {transcript}
+                </p>
+              )}
+              {response && (
+                <p className="text-sm text-muted-foreground bg-muted rounded-lg p-3">
+                  {response}
+                </p>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="flex justify-center gap-4">
+              <Button
+                variant={realtimeIsListening ? "destructive" : "default"}
+                size="lg"
+                className="rounded-full w-16 h-16"
+                disabled={!isConnected}
               >
-                <Send className="h-4 w-4" />
+                <Mic className="h-6 w-6" />
               </Button>
             </div>
+
+            {/* Text Input for Voice Mode */}
+            {isConnected && (
+              <div className="mt-6">
+                <div className="flex items-center gap-2 bg-muted rounded-full px-4 py-2">
+                  <Input 
+                    value={input} 
+                    onChange={e => setInput(e.target.value)} 
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey && input.trim()) {
+                        e.preventDefault();
+                        sendText(input.trim());
+                        setInput('');
+                      }
+                    }}
+                    placeholder="Type to Lexa..." 
+                    className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground text-sm" 
+                  />
+                  
+                  <Button 
+                    onClick={() => {
+                      if (input.trim()) {
+                        sendText(input.trim());
+                        setInput('');
+                      }
+                    }}
+                    disabled={!input.trim()} 
+                    size="sm" 
+                    className="h-6 w-6 rounded-full p-0"
+                  >
+                    <Send className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
