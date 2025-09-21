@@ -53,72 +53,74 @@ export default function Dashboard() {
   const completedGoals = todayGoals.filter(goal => goal.done).length;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8 mobile-container">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-foreground mb-2">LifeX</h1>
-        <p className="text-muted-foreground">Your AI-powered life operating system</p>
+        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">LifeX</h1>
+        <p className="text-muted-foreground text-sm md:text-base">Your AI-powered life operating system</p>
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="copilot" className="flex items-center gap-2">
-            <Brain size={16} />
-            AI Co-Pilot
+        <TabsList className="grid w-full grid-cols-3 h-auto">
+          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
+          <TabsTrigger value="copilot" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+            <Brain size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">AI Co-Pilot</span>
+            <span className="sm:hidden">AI</span>
           </TabsTrigger>
-          <TabsTrigger value="setup" className="flex items-center gap-2">
-            <Database size={16} />
-            Data Setup
+          <TabsTrigger value="setup" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+            <Database size={14} className="sm:w-4 sm:h-4" />
+            <span className="hidden sm:inline">Data Setup</span>
+            <span className="sm:hidden">Setup</span>
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="space-y-8 mt-6">
+        <TabsContent value="overview" className="space-y-6 md:space-y-8 mt-4 md:mt-6">
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <Card className="mobile-card">
+          <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center space-x-2">
-              <Target className="h-8 w-8 text-primary" />
+              <Target className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{completedGoals}/{todayGoals.length}</p>
+                <p className="text-xl md:text-2xl font-bold">{completedGoals}/{todayGoals.length}</p>
                 <p className="text-xs text-muted-foreground">Today's Goals</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="mobile-card">
+          <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center space-x-2">
-              <PenTool className="h-8 w-8 text-primary" />
+              <PenTool className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{recentEntries.length}</p>
+                <p className="text-xl md:text-2xl font-bold">{recentEntries.length}</p>
                 <p className="text-xs text-muted-foreground">Recent Entries</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="mobile-card">
+          <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center space-x-2">
-              <DollarSign className="h-8 w-8 text-primary" />
+              <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">{recentTransactions.length}</p>
+                <p className="text-xl md:text-2xl font-bold">{recentTransactions.length}</p>
                 <p className="text-xs text-muted-foreground">Recent Transactions</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardContent className="pt-6">
+        <Card className="mobile-card">
+          <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center space-x-2">
-              <BarChart3 className="h-8 w-8 text-primary" />
+              <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
               <div>
-                <p className="text-2xl font-bold">7</p>
-                <p className="text-xs text-muted-foreground">Life Areas</p>
+                <p className="text-xl md:text-2xl font-bold">7</p>
+                <p className="text-xs text-muted-foreground">Days Active</p>
               </div>
             </div>
           </CardContent>
@@ -126,10 +128,10 @@ export default function Dashboard() {
       </div>
 
       {/* Top 7 Priorities */}
-      <Card>
+      <Card className="mobile-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+            <Target className="h-4 w-4 md:h-5 md:w-5" />
             Top 7 Priorities Today
           </CardTitle>
         </CardHeader>

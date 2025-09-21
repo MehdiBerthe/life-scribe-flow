@@ -23,8 +23,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <div className="min-h-screen bg-background">
-          <div className="max-w-7xl mx-auto px-4 py-8">
-            <Navigation />
+          <Navigation />
+          <div className="max-w-7xl mx-auto px-4 py-4 md:py-8">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/journal" element={<Journal />} />

@@ -28,21 +28,21 @@ export function ContactCard({ contact, onMarkSent, onSnooze, onSkip }: ContactCa
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
           <div className="flex-1">
             <h3 className="font-semibold text-lg text-foreground">{contact.name}</h3>
             <div className="space-y-1 mt-1">
               {contact.company && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Building size={14} />
-                  <span>{contact.company}</span>
+                  <span className="truncate">{contact.company}</span>
                 </div>
               )}
               
               {contact.email && (
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Mail size={14} />
-                  <span>{contact.email}</span>
+                  <span className="truncate">{contact.email}</span>
                 </div>
               )}
               
@@ -55,7 +55,7 @@ export function ContactCard({ contact, onMarkSent, onSnooze, onSkip }: ContactCa
             </div>
           </div>
           
-          <div className="flex flex-col items-end gap-2">
+          <div className="flex sm:flex-col items-start sm:items-end gap-2">
             {contact.segment && (
               <Badge className={getSegmentColor(contact.segment)}>
                 {contact.segment}
@@ -105,33 +105,37 @@ export function ContactCard({ contact, onMarkSent, onSnooze, onSkip }: ContactCa
           </div>
         )}
 
-        <div className="flex gap-2 pt-4 border-t border-border">
+        <div className="flex flex-col sm:flex-row gap-2 pt-4 border-t border-border">
           <Button 
             onClick={() => onMarkSent(contact.id)}
-            className="flex-1"
+            className="flex-1 mobile-button"
             size="sm"
           >
             <CheckCircle size={16} className="mr-2" />
             Mark Sent
           </Button>
           
-          <Button 
-            onClick={() => onSnooze(contact.id)}
-            variant="outline"
-            size="sm"
-          >
-            <ZapOff size={16} className="mr-1" />
-            Snooze
-          </Button>
-          
-          <Button 
-            onClick={() => onSkip(contact.id)}
-            variant="outline"
-            size="sm"
-          >
-            <SkipForward size={16} className="mr-1" />
-            Skip
-          </Button>
+          <div className="flex gap-2 sm:flex-shrink-0">
+            <Button 
+              onClick={() => onSnooze(contact.id)}
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none mobile-button"
+            >
+              <ZapOff size={16} className="mr-1" />
+              Snooze
+            </Button>
+            
+            <Button 
+              onClick={() => onSkip(contact.id)}
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none mobile-button"
+            >
+              <SkipForward size={16} className="mr-1" />
+              Skip
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

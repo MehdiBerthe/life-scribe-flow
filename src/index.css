@@ -109,4 +109,77 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Mobile optimizations */
+  @media (max-width: 768px) {
+    html {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    
+    body {
+      font-size: 16px; /* Prevent zoom on input focus */
+    }
+  }
+}
+
+@layer utilities {
+  /* Mobile-first responsive utilities */
+  .mobile-container {
+    @apply px-4 py-3;
+  }
+  
+  .mobile-card {
+    @apply p-4 rounded-lg;
+  }
+  
+  .mobile-button {
+    @apply min-h-[44px] px-4 py-2 text-base;
+  }
+  
+  .mobile-input {
+    @apply min-h-[44px] px-3 py-2 text-base;
+  }
+  
+  .mobile-safe-area {
+    @apply pb-safe-area-inset-bottom;
+  }
+  
+  /* Touch-friendly interface improvements */
+  .mobile-touch {
+    @apply select-none touch-manipulation;
+  }
+  
+  /* Better button sizing for mobile */
+  @media (max-width: 640px) {
+    .mobile-button {
+      @apply min-h-[44px] px-4 py-3 text-base;
+    }
+    
+    .mobile-input {
+      @apply min-h-[44px] px-3 py-3 text-base;
+    }
+    
+    .mobile-card {
+      @apply p-4 rounded-lg;
+    }
+    
+    .mobile-container {
+      @apply px-4 py-3;
+    }
+    
+    /* Ensure dropdowns have proper background and z-index on mobile */
+    [data-radix-popper-content-wrapper] {
+      @apply z-50;
+    }
+    
+    [data-radix-portal] {
+      @apply z-50;
+    }
+    
+    /* Dropdown content styling */
+    [role="menu"], [role="listbox"] {
+      @apply bg-popover border border-border shadow-lg;
+    }
+  }
 }
