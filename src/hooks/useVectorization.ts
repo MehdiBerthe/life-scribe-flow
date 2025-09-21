@@ -23,9 +23,9 @@ export const useVectorization = () => {
       // Get all local storage data
       const journalData = storage.journal.getAll();
       const readingData = storage.reading.getAll();
-      const goalData = storage.goals.getAll();
+      const goalData = storage.dailyGoals.getAll();
       const transactionData = storage.transactions.getAll();
-      const physicalData = storage.physical.getAll();
+      const physicalData = storage.weeklyPlans.getAll(); // Using weeklyPlans as physical data
 
       const dataTypes = [
         { name: 'journal', data: journalData },

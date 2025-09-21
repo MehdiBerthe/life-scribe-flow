@@ -142,8 +142,7 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
         const { data: conversation } = await supabase
           .from('conversations')
           .insert({
-            title: input.slice(0, 50),
-            messages: [...messages, userMessage, assistantMessage],
+            messages: JSON.stringify([...messages, userMessage, assistantMessage]),
             user_id: 'single-user'
           })
           .select()
@@ -157,7 +156,7 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
         await supabase
           .from('conversations')
           .update({
-            messages: [...messages, userMessage, assistantMessage],
+            messages: JSON.stringify([...messages, userMessage, assistantMessage]),
             updated_at: new Date().toISOString()
           })
           .eq('id', conversationId);
