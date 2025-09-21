@@ -139,6 +139,36 @@ export type Database = {
         }
         Relationships: []
       }
+      conversations_memory: {
+        Row: {
+          created_at: string | null
+          id: number
+          metadata: Json | null
+          role: string
+          session_id: string | null
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: number
+          metadata?: Json | null
+          role: string
+          session_id?: string | null
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: number
+          metadata?: Json | null
+          role?: string
+          session_id?: string | null
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       embeddings: {
         Row: {
           content: string
@@ -168,6 +198,69 @@ export type Database = {
           embedding?: string | null
           id?: string
           metadata?: Json | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      memories: {
+        Row: {
+          confidence: number | null
+          id: number
+          key: string
+          last_seen_at: string | null
+          user_id: string
+          value: string
+        }
+        Insert: {
+          confidence?: number | null
+          id?: number
+          key: string
+          last_seen_at?: string | null
+          user_id: string
+          value: string
+        }
+        Update: {
+          confidence?: number | null
+          id?: number
+          key?: string
+          last_seen_at?: string | null
+          user_id?: string
+          value?: string
+        }
+        Relationships: []
+      }
+      rag_docs: {
+        Row: {
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: number
+          kind: string
+          metadata: Json | null
+          ref_id: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: number
+          kind: string
+          metadata?: Json | null
+          ref_id?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: number
+          kind?: string
+          metadata?: Json | null
+          ref_id?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: []
