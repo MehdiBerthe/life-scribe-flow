@@ -59,25 +59,20 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-sm md:text-base">Your AI-powered life operating system</p>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 h-auto">
-          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
+      <Tabs defaultValue="copilot" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 h-auto">
           <TabsTrigger value="copilot" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
             <Brain size={14} className="sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">AI Co-Pilot</span>
             <span className="sm:hidden">AI</span>
           </TabsTrigger>
-          <TabsTrigger value="setup" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-            <Database size={14} className="sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">Data Setup</span>
-            <span className="sm:hidden">Setup</span>
-          </TabsTrigger>
+          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6 md:space-y-8 mt-4 md:mt-6">
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div className="grid grid-cols-2 gap-3 md:gap-4">
         <Card className="mobile-card">
           <CardContent className="pt-4 md:pt-6">
             <div className="flex items-center space-x-2">
@@ -97,30 +92,6 @@ export default function Dashboard() {
               <div>
                 <p className="text-xl md:text-2xl font-bold">{recentEntries.length}</p>
                 <p className="text-xs text-muted-foreground">Recent Entries</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mobile-card">
-          <CardContent className="pt-4 md:pt-6">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-              <div>
-                <p className="text-xl md:text-2xl font-bold">{recentTransactions.length}</p>
-                <p className="text-xs text-muted-foreground">Recent Transactions</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="mobile-card">
-          <CardContent className="pt-4 md:pt-6">
-            <div className="flex items-center space-x-2">
-              <BarChart3 className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-              <div>
-                <p className="text-xl md:text-2xl font-bold">7</p>
-                <p className="text-xs text-muted-foreground">Days Active</p>
               </div>
             </div>
           </CardContent>
@@ -218,56 +189,6 @@ export default function Dashboard() {
           <AICopilot />
         </TabsContent>
         
-        <TabsContent value="setup" className="mt-6 space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Data Vectorization
-              </CardTitle>
-              <CardDescription>
-                Process your data to enable AI semantic search and intelligent insights.
-                This creates embeddings of your journal entries, contacts, goals, and other data.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {isVectorizing ? (
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>{progress.type}</span>
-                    <span>{progress.current}/{progress.total}</span>
-                  </div>
-                  <Progress 
-                    value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
-                    className="w-full"
-                  />
-                </div>
-              ) : (
-                <div className="flex gap-3">
-                  <Button onClick={vectorizeAllData} className="flex items-center gap-2">
-                    <RefreshCw className="h-4 w-4" />
-                    Vectorize All Data
-                  </Button>
-                  <Button variant="outline" onClick={vectorizeContacts} className="flex items-center gap-2">
-                    <Database className="h-4 w-4" />
-                    Vectorize Contacts Only
-                  </Button>
-                </div>
-              )}
-              
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  <strong>First time?</strong> Click "Vectorize All Data" to process all your existing information.
-                  This may take a few minutes depending on how much data you have.
-                </p>
-                <p className="mt-2">
-                  <strong>Regular updates:</strong> The AI will automatically process new data as you add it,
-                  but you can manually refresh if needed.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
     </div>
   );
