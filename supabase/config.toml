@@ -1,1 +1,7 @@
 project_id = "gqwymmauiijshudgstva"
+
+[functions.rag-index]
+verify_jwt = false
+
+[functions.rag-search]
+verify_jwt = false

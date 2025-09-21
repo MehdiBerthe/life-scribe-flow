@@ -341,6 +341,25 @@ export type Database = {
           similarity: number
         }[]
       }
+      match_rag_docs: {
+        Args: {
+          end_ts?: string
+          k?: number
+          kinds?: string[]
+          query_embedding: string
+          start_ts?: string
+          user_id: string
+        }
+        Returns: {
+          content: string
+          created_at: string
+          id: number
+          kind: string
+          metadata: Json
+          score: number
+          title: string
+        }[]
+      }
       sparsevec_out: {
         Args: { "": unknown }
         Returns: unknown
