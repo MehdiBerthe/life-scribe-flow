@@ -13,9 +13,9 @@ import {
 } from 'lucide-react';
 
 const navigation = [
+  { name: 'Planning', href: '/planning', icon: Target },
   { name: 'Journal', href: '/journal', icon: PenTool },
   { name: 'Reading', href: '/reading', icon: BookOpen },
-  { name: 'Planning', href: '/planning', icon: Target },
   { name: 'Finance', href: '/finance', icon: DollarSign },
   { name: 'Physical', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
@@ -37,7 +37,7 @@ export function Navigation() {
               : "bg-card text-card-foreground hover:bg-secondary"
           )}
         >
-          LifeOS Dashboard
+          LifeX Dashboard
         </Link>
         
         {navigation.map((item) => {

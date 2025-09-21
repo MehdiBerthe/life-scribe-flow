@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { NotebookPage } from '@/components/NotebookPage';
+import AICopilot from '@/components/AICopilot';
 import { storage, formatDate, isToday } from '@/lib/storage';
 import { DailyGoal, JournalEntry, Transaction } from '@/types';
 import { 
@@ -13,7 +15,8 @@ import {
   Activity, 
   Users,
   BarChart3,
-  CheckCircle2
+  CheckCircle2,
+  Brain
 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -47,9 +50,20 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-foreground mb-2">LifeOS Dashboard</h1>
-        <p className="text-muted-foreground">Your minimal life operating system</p>
+        <h1 className="text-4xl font-bold text-foreground mb-2">LifeX</h1>
+        <p className="text-muted-foreground">Your AI-powered life operating system</p>
       </div>
+
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="copilot" className="flex items-center gap-2">
+            <Brain size={16} />
+            AI Co-Pilot
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-8 mt-6">
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -187,6 +201,12 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
+        </TabsContent>
+        
+        <TabsContent value="copilot" className="mt-6">
+          <AICopilot />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
