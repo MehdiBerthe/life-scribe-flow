@@ -8,7 +8,8 @@ import {
   Users, 
   PenTool,
   Target,
-  BarChart3
+  BarChart3,
+  Brain
 } from 'lucide-react';
 
 const navigation = [
@@ -18,6 +19,7 @@ const navigation = [
   { name: 'Finance', href: '/finance', icon: DollarSign },
   { name: 'Physical', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
+  { name: 'AI Co-Pilot', href: '/ai-copilot', icon: Brain },
 ];
 
 export function Navigation() {
