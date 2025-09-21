@@ -83,16 +83,15 @@ const availableFunctions = [
   {
     type: "function",
     function: {
-      name: "send_whatsapp_message",
-      description: "Send a WhatsApp message to a contact",
+      name: "trigger_n8n_workflow",
+      description: "Trigger an n8n workflow for external integrations (WhatsApp, Calendar, Email, etc.)",
       parameters: {
         type: "object",
         properties: {
-          contact_id: { type: "string", description: "Contact ID to send message to" },
-          message: { type: "string", description: "Message content to send" },
-          contact_name: { type: "string", description: "Contact name for reference" }
+          workflow_type: { type: "string", enum: ["whatsapp_message", "calendar_event", "email_notification", "reminder"], description: "Type of workflow to trigger" },
+          data: { type: "object", description: "Data to send to the workflow" }
         },
-        required: ["contact_id", "message"]
+        required: ["workflow_type", "data"]
       }
     }
   },
@@ -320,32 +319,82 @@ async function scheduleReminder(params: any) {
   return { success: true, reminder: data };
 }
 
-async function sendWhatsAppMessage(params: any) {
-  console.log('Sending WhatsApp message:', params);
+async function triggerN8nWorkflow(params: any) {
+  console.log('Triggering n8n workflow:', params);
   
-  const { data, error } = await supabase
+  const { workflow_type, data } = params;
+  
+  // Get n8n webhook URL from environment
+  const n8nBaseUrl = Deno.env.get('N8N_WEBHOOK_URL') || 'http://localhost:5678/webhook';
+  const webhookUrl = `${n8nBaseUrl}/${workflow_type}`;
+  
+  // Prepare payload
+  const payload = {
+    user_id: 'single-user',
+    workflow_type,
+    data,
+    timestamp: new Date().toISOString()
+  };
+
+  // Log the action to database first
+  const { data: actionLog, error: logError } = await supabase
     .from('ai_actions')
     .insert({
-      action_type: 'send_whatsapp',
-      action_data: {
-        contact_id: params.contact_id,
-        message: params.message,
-        contact_name: params.contact_name
-      },
-      user_id: 'single-user'
+      action_type: workflow_type,
+      action_data: payload,
+      user_id: 'single-user',
+      status: 'pending'
     })
     .select()
     .single();
 
-  if (error) {
-    throw new Error(`Failed to queue WhatsApp message: ${error.message}`);
+  if (logError) {
+    throw new Error(`Failed to log n8n action: ${logError.message}`);
   }
 
-  return { 
-    success: true, 
-    message: `WhatsApp message queued for ${params.contact_name || 'contact'}`,
-    action: data 
-  };
+  // Try to trigger n8n workflow
+  try {
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) {
+      throw new Error(`n8n webhook failed: ${response.status} ${response.statusText}`);
+    }
+
+    // Update action status to completed
+    await supabase
+      .from('ai_actions')
+      .update({ status: 'completed' })
+      .eq('id', actionLog.id);
+
+    return { 
+      success: true, 
+      message: `Successfully triggered ${workflow_type} workflow via n8n`,
+      action_id: actionLog.id,
+      webhook_url: webhookUrl
+    };
+  } catch (fetchError) {
+    // Update action status to failed but don't throw - allow fallback
+    await supabase
+      .from('ai_actions')
+      .update({ 
+        status: 'failed',
+        action_data: { ...payload, error: fetchError.message }
+      })
+      .eq('id', actionLog.id);
+
+    return { 
+      success: false, 
+      message: `n8n workflow trigger failed: ${fetchError.message}. Action logged for manual processing.`,
+      action_id: actionLog.id,
+      fallback: true
+    };
+  }
 }
 
 async function addCalendarEvent(params: any) {
@@ -519,8 +568,8 @@ CONTEXT FROM USER'S DATA:
 ${contextText}
 
 You can help with:
-- Managing contacts and CRM activities (create, search, send WhatsApp messages)
-- Calendar management (add events, view upcoming schedule)
+- Managing contacts and CRM activities (create, search)
+- External integrations via n8n workflows (WhatsApp, Calendar, Email, etc.)
 - Goal tracking and progress updates
 - Journal entries and mood tracking
 - Physical activity and exercise logging
@@ -530,14 +579,16 @@ You can help with:
 - Taking specific actions in the app on their behalf
 
 AVAILABLE ACTIONS:
-- Send WhatsApp messages to contacts from the CRM
-- Add calendar events and view upcoming schedule
+- Trigger n8n workflows for external integrations (WhatsApp messages, calendar sync, email notifications)
+- Add calendar events and view upcoming schedule (via internal tracking or n8n)
 - Update goal progress and track achievements
 - Add journal entries with mood and tags
 - Track physical activities and exercises
 - Schedule reminders for any purpose
 - Search and manage contacts
 - Analyze recent activity patterns
+
+When users request external integrations like WhatsApp messages or calendar events, use the trigger_n8n_workflow function with appropriate workflow_type and data. This allows for real integrations with external services through n8n automation.
 
 Be conversational, helpful, and proactive. Use the available functions when appropriate to help the user accomplish their goals. When taking actions, confirm what you're doing and provide helpful feedback about the results.
 
@@ -589,8 +640,8 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
       case 'schedule_reminder':
         functionResult = await scheduleReminder(functionArgs);
         break;
-      case 'send_whatsapp_message':
-        functionResult = await sendWhatsAppMessage(functionArgs);
+      case 'trigger_n8n_workflow':
+        functionResult = await triggerN8nWorkflow(functionArgs);
         break;
       case 'add_calendar_event':
         functionResult = await addCalendarEvent(functionArgs);
