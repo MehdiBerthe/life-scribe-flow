@@ -193,7 +193,27 @@ export const useRealtimeVoice = () => {
   // Connect to realtime voice
   const connect = useCallback(async () => {
     try {
-      // Get microphone access
+      console.log('Starting voice connection...');
+      
+      // Test connection first with a simple HTTP request
+      try {
+        const testResponse = await fetch('https://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice', {
+          method: 'POST',
+          body: JSON.stringify({ test: true }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('Edge function test response:', testResponse.status);
+      } catch (testError) {
+        console.error('Edge function test failed:', testError);
+        toast({
+          title: "Service Unavailable",
+          description: "Voice service is not available. Please try again later.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Get microphone access first
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           sampleRate: 24000,
@@ -204,15 +224,37 @@ export const useRealtimeVoice = () => {
         }
       });
       
+      console.log('Microphone access granted');
       streamRef.current = stream;
 
-      // Create WebSocket connection
+      // Create WebSocket connection with proper error handling
       const wsUrl = `wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice`;
+      console.log('Connecting to:', wsUrl);
+      
       socketRef.current = new WebSocket(wsUrl);
+      
+      // Set up connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (socketRef.current && socketRef.current.readyState === WebSocket.CONNECTING) {
+          console.log('Connection timeout');
+          socketRef.current.close();
+          toast({
+            title: "Connection Timeout",
+            description: "Could not connect to voice service. Please check your internet connection and try again.",
+            variant: "destructive",
+          });
+        }
+      }, 15000); // 15 second timeout
       
       socketRef.current.onopen = () => {
         console.log('Connected to realtime voice');
+        clearTimeout(connectionTimeout);
         setIsConnected(true);
+        
+        toast({
+          title: "Voice Connected",
+          description: "You can now speak to Lexa",
+        });
         
         // Set up audio processing
         if (!audioContextRef.current) return;
@@ -242,25 +284,44 @@ export const useRealtimeVoice = () => {
       
       socketRef.current.onerror = (error) => {
         console.error('WebSocket error:', error);
+        clearTimeout(connectionTimeout);
+        setIsConnected(false);
+        setIsListening(false);
+        setIsSpeaking(false);
+        
+        // Clean up stream
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
+        
         toast({
-          title: "Connection Error",
-          description: "Failed to connect to voice service",
+          title: "Connection Error", 
+          description: "Failed to connect to voice service. Please check your internet connection and try again.",
           variant: "destructive",
         });
       };
       
-      socketRef.current.onclose = () => {
-        console.log('WebSocket closed');
+      socketRef.current.onclose = (event) => {
+        console.log('WebSocket closed:', event.code, event.reason);
+        clearTimeout(connectionTimeout);
         setIsConnected(false);
         setIsListening(false);
         setIsSpeaking(false);
+        
+        if (event.code !== 1000) { // Not a normal close
+          toast({
+            title: "Connection Lost",
+            description: "Voice connection was lost. Please try again.",
+            variant: "destructive",
+          });
+        }
       };
 
     } catch (error) {
       console.error('Error connecting to realtime voice:', error);
       toast({
         title: "Microphone Error",
-        description: "Could not access microphone. Please check permissions.",
+        description: "Could not access microphone. Please check permissions and try again.",
         variant: "destructive",
       });
     }
