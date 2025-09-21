@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.daily-digests]
 verify_jwt = false
+
+[functions.llm-middleware]
+verify_jwt = false

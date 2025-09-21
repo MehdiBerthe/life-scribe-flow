@@ -14,6 +14,7 @@ import Social from "./pages/Social";
 import AICopilotPage from "./pages/AICopilotPage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import TestLLMStats from "./pages/TestLLMStats";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
               <Route path="/social" element={<Social />} />
               <Route path="/ai-copilot" element={<AICopilotPage />} />
               <Route path="/settings" element={<Settings />} />
+              <Route path="/test-llm-stats" element={<TestLLMStats />} />
               {/* Legacy routes for backwards compatibility */}
               <Route path="/goals" element={<Planning />} />
               <Route path="/review" element={<Planning />} />

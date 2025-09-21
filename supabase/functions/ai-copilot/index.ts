@@ -549,23 +549,15 @@ async function trackPhysicalActivity(params: any) {
   };
 }
 
-// Main chat function
+// Main chat function with middleware integration
 async function processChat(messages: any[], conversationId?: string) {
   console.log('Processing chat with', messages.length, 'messages');
   
-  // Get relevant context from the last user message
+  const userId = 'single-user';
   const lastMessage = messages[messages.length - 1];
-  const context = await semanticSearch(lastMessage.content, 15);
   
-  // Build system prompt with context
-  const contextText = context
-    .map(item => `[${item.content_type}] ${item.content} (${item.metadata?.date || 'no date'})`)
-    .join('\n');
-    
-  const systemPrompt = `You are an AI Co-Pilot for a personal productivity and life management system. You have access to the user's data through embeddings and can take actions on their behalf.
-
-CONTEXT FROM USER'S DATA:
-${contextText}
+  // Build base system prompt
+  const baseSystemPrompt = `You are an AI Co-Pilot for a personal productivity and life management system. You have access to the user's data through embeddings and can take actions on their behalf.
 
 You can help with:
 - Managing contacts and CRM activities (create, search)
@@ -594,6 +586,28 @@ Be conversational, helpful, and proactive. Use the available functions when appr
 
 Current date: ${new Date().toISOString().split('T')[0]}`;
 
+  // Process request through middleware
+  const { data: middlewareResult, error: middlewareError } = await supabase.functions.invoke('llm-middleware', {
+    body: {
+      userId,
+      systemPrompt: baseSystemPrompt,
+      userMessage: lastMessage.content
+    }
+  });
+
+  if (middlewareError) {
+    console.error('Middleware error:', middlewareError);
+    throw new Error('Failed to process request through middleware');
+  }
+
+  // Build final system prompt with memory context
+  const finalSystemPrompt = `${middlewareResult.systemPrompt}
+
+RELEVANT CONTEXT FROM USER'S DATA:
+${middlewareResult.memoryContext}`;
+
+  console.log(`Using middleware-processed content: ${middlewareResult.totalTokens} total tokens, ${middlewareResult.memoryItems} memory items`);
+
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -603,8 +617,9 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
     body: JSON.stringify({
       model: 'gpt-5-2025-08-07',
       messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages
+        { role: 'system', content: finalSystemPrompt },
+        ...messages.slice(0, -1), // Previous messages (if any)
+        { role: 'user', content: middlewareResult.userMessage }
       ],
       functions: availableFunctions.map(f => f.function),
       function_call: 'auto',
@@ -619,78 +634,129 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
   const result = await response.json();
   const choice = result.choices[0];
 
-  // Handle function calls
-  if (choice.message.function_call) {
-    const functionName = choice.message.function_call.name;
-    const functionArgs = JSON.parse(choice.message.function_call.arguments);
-    
-    console.log('Executing function:', functionName, 'with args:', functionArgs);
-    
-    let functionResult;
-    switch (functionName) {
-      case 'create_contact':
-        functionResult = await createContact(functionArgs);
-        break;
-      case 'search_contacts':
-        functionResult = await searchContacts(functionArgs);
-        break;
-      case 'get_recent_activity':
-        functionResult = await getRecentActivity(functionArgs);
-        break;
-      case 'schedule_reminder':
-        functionResult = await scheduleReminder(functionArgs);
-        break;
-      case 'trigger_n8n_workflow':
-        functionResult = await triggerN8nWorkflow(functionArgs);
-        break;
-      case 'add_calendar_event':
-        functionResult = await addCalendarEvent(functionArgs);
-        break;
-      case 'get_calendar_events':
-        functionResult = await getCalendarEvents(functionArgs);
-        break;
-      case 'update_goal_progress':
-        functionResult = await updateGoalProgress(functionArgs);
-        break;
-      case 'add_journal_entry':
-        functionResult = await addJournalEntry(functionArgs);
-        break;
-      case 'track_physical_activity':
-        functionResult = await trackPhysicalActivity(functionArgs);
-        break;
-      default:
-        functionResult = { error: `Unknown function: ${functionName}` };
-    }
-
-    // Get final response with function result
-    const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-5-2025-08-07',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages,
-          choice.message,
-          { role: 'function', name: functionName, content: JSON.stringify(functionResult) }
-        ],
-        max_completion_tokens: 1000,
-      }),
-    });
-
-    const followUpResult = await followUpResponse.json();
-    return {
-      message: followUpResult.choices[0].message.content,
-      function_call: {
-        name: functionName,
-        arguments: functionArgs,
-        result: functionResult
+    // Handle function calls with middleware for tool results
+    if (choice.message.function_call) {
+      const functionName = choice.message.function_call.name;
+      const functionArgs = JSON.parse(choice.message.function_call.arguments);
+      
+      console.log('Executing function:', functionName, 'with args:', functionArgs);
+      
+      let functionResult;
+      switch (functionName) {
+        case 'create_contact':
+          functionResult = await createContact(functionArgs);
+          break;
+        case 'search_contacts':
+          functionResult = await searchContacts(functionArgs);
+          break;
+        case 'get_recent_activity':
+          functionResult = await getRecentActivity(functionArgs);
+          break;
+        case 'schedule_reminder':
+          functionResult = await scheduleReminder(functionArgs);
+          break;
+        case 'trigger_n8n_workflow':
+          functionResult = await triggerN8nWorkflow(functionArgs);
+          break;
+        case 'add_calendar_event':
+          functionResult = await addCalendarEvent(functionArgs);
+          break;
+        case 'get_calendar_events':
+          functionResult = await getCalendarEvents(functionArgs);
+          break;
+        case 'update_goal_progress':
+          functionResult = await updateGoalProgress(functionArgs);
+          break;
+        case 'add_journal_entry':
+          functionResult = await addJournalEntry(functionArgs);
+          break;
+        case 'track_physical_activity':
+          functionResult = await trackPhysicalActivity(functionArgs);
+          break;
+        default:
+          functionResult = { error: `Unknown function: ${functionName}` };
       }
-    };
-  }
+
+      // Process follow-up through middleware with tool results
+      const { data: followUpMiddleware, error: followUpError } = await supabase.functions.invoke('llm-middleware', {
+        body: {
+          userId,
+          systemPrompt: baseSystemPrompt,
+          userMessage: lastMessage.content,
+          toolResults: [functionResult]
+        }
+      });
+
+      if (followUpError) {
+        console.error('Follow-up middleware error:', followUpError);
+        // Fallback to direct call
+        const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${openaiApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'gpt-5-2025-08-07',
+            messages: [
+              { role: 'system', content: finalSystemPrompt },
+              ...messages,
+              choice.message,
+              { role: 'function', name: functionName, content: JSON.stringify(functionResult) }
+            ],
+            max_completion_tokens: 1000,
+          }),
+        });
+
+        const followUpResult = await followUpResponse.json();
+        return {
+          message: followUpResult.choices[0].message.content,
+          function_call: {
+            name: functionName,
+            arguments: functionArgs,
+            result: functionResult
+          }
+        };
+      }
+
+      // Use middleware-processed follow-up
+      const followUpSystemPrompt = `${followUpMiddleware.systemPrompt}
+
+RELEVANT CONTEXT FROM USER'S DATA:
+${followUpMiddleware.memoryContext}
+
+TOOL RESULTS:
+${followUpMiddleware.toolResults}`;
+
+      const followUpResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-5-2025-08-07',
+          messages: [
+            { role: 'system', content: followUpSystemPrompt },
+            ...messages.slice(0, -1),
+            { role: 'user', content: followUpMiddleware.userMessage },
+            choice.message,
+            { role: 'function', name: functionName, content: JSON.stringify(functionResult) }
+          ],
+          max_completion_tokens: 1000,
+        }),
+      });
+
+      const followUpResult = await followUpResponse.json();
+      return {
+        message: followUpResult.choices[0].message.content,
+        function_call: {
+          name: functionName,
+          arguments: functionArgs,
+          result: functionResult
+        }
+      };
+    }
 
   return {
     message: choice.message.content
