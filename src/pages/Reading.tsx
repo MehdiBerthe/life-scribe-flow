@@ -178,15 +178,16 @@ export default function Reading() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 md:space-y-6 mobile-container">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <BookOpen className="h-6 w-6 text-ink" />
-          <h1 className="text-3xl font-bold text-ink">Reading List</h1>
+          <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Reading List</h1>
         </div>
         <Button 
           onClick={() => setShowBookForm(!showBookForm)}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto"
+          size="sm"
         >
           <Plus size={16} />
           Add Book
@@ -204,32 +205,34 @@ export default function Reading() {
             </CardHeader>
             <CardContent>
               <form onSubmit={editingBook ? updateBook : addBook} className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-ink">Title *</label>
+                    <label className="text-sm font-medium text-foreground">Title *</label>
                     <Input
                       value={bookForm.title}
                       onChange={(e) => setBookForm(prev => ({ ...prev, title: e.target.value }))}
                       placeholder="Book title..."
                       required
+                      className="mt-1"
                     />
                   </div>
                   
                   <div>
-                    <label className="text-sm font-medium text-ink">Author</label>
+                    <label className="text-sm font-medium text-foreground">Author</label>
                     <Input
                       value={bookForm.author}
                       onChange={(e) => setBookForm(prev => ({ ...prev, author: e.target.value }))}
                       placeholder="Author name..."
+                      className="mt-1"
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-ink">Category</label>
+                    <label className="text-sm font-medium text-foreground">Category</label>
                     <Select value={bookForm.category} onValueChange={(value) => setBookForm(prev => ({ ...prev, category: value }))}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select category..." />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border z-50">
@@ -241,9 +244,9 @@ export default function Reading() {
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-ink">Status</label>
+                    <label className="text-sm font-medium text-foreground">Status</label>
                     <Select value={bookForm.status} onValueChange={(value: ReadingItem['status']) => setBookForm(prev => ({ ...prev, status: value }))}>
-                      <SelectTrigger>
+                      <SelectTrigger className="mt-1">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-popover border z-50">
@@ -256,17 +259,18 @@ export default function Reading() {
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-ink">PDF/Link URL (optional)</label>
+                  <label className="text-sm font-medium text-foreground">PDF/Link URL (optional)</label>
                   <Input
                     value={bookForm.pdfUrl}
                     onChange={(e) => setBookForm(prev => ({ ...prev, pdfUrl: e.target.value }))}
                     placeholder="https://..."
                     type="url"
+                    className="mt-1"
                   />
                 </div>
 
-                <div className="flex gap-2">
-                  <Button type="submit">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button type="submit" className="w-full sm:w-auto">
                     {editingBook ? 'Update Book' : 'Add Book'}
                   </Button>
                   <Button 
@@ -277,6 +281,7 @@ export default function Reading() {
                       setEditingBook(null);
                       setBookForm({ title: '', author: '', category: '', pdfUrl: '', status: 'queued' });
                     }}
+                    className="w-full sm:w-auto"
                   >
                     Cancel
                   </Button>
@@ -288,32 +293,32 @@ export default function Reading() {
       )}
 
       {/* Reading List */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Books */}
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold text-ink">Books</h2>
+        <div className="space-y-3 md:space-y-4">
+          <h2 className="text-lg md:text-xl font-semibold text-foreground">Books</h2>
           
           {items.length === 0 ? (
             <NotebookPage showLines>
-              <div className="text-center py-12">
-                <BookOpen size={48} className="mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-ink mb-2">No books in your list</h3>
-                <p className="text-muted-foreground">Add your first book to start tracking your reading journey.</p>
+              <div className="text-center py-8 md:py-12">
+                <BookOpen size={40} className="mx-auto text-muted-foreground mb-3 md:mb-4" />
+                <h3 className="text-base md:text-lg font-medium text-foreground mb-2">No books in your list</h3>
+                <p className="text-sm md:text-base text-muted-foreground">Add your first book to start tracking your reading journey.</p>
               </div>
             </NotebookPage>
           ) : (
             items.map((item) => (
               <NotebookPage key={item.id}>
-                <Card className="border-0 bg-transparent shadow-none">
+                <Card className="border-0 bg-transparent shadow-none mobile-card">
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <CardTitle className="text-ink text-lg">{item.title}</CardTitle>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-foreground text-base md:text-lg line-clamp-2">{item.title}</CardTitle>
                         {item.author && (
-                          <p className="text-muted-foreground text-sm mt-1">by {item.author}</p>
+                          <p className="text-muted-foreground text-sm mt-1 line-clamp-1">by {item.author}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Badge className={getStatusColor(item.status)}>
                           {item.status}
                         </Badge>
@@ -322,24 +327,26 @@ export default function Reading() {
                             {item.category}
                           </Badge>
                         )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => editBook(item)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <Edit size={14} />
-                        </Button>
-                        {item.pdfUrl && (
-                          <a 
-                            href={item.pdfUrl} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            className="text-accent hover:text-accent/80"
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => editBook(item)}
+                            className="h-8 w-8 p-0"
                           >
-                            <ExternalLink size={16} />
-                          </a>
-                        )}
+                            <Edit size={14} />
+                          </Button>
+                          {item.pdfUrl && (
+                            <a 
+                              href={item.pdfUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="text-primary hover:text-primary/80 p-1"
+                            >
+                              <ExternalLink size={16} />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                     
@@ -354,10 +361,10 @@ export default function Reading() {
                     )}
                   </CardHeader>
                   
-                  <CardContent>
-                    <div className="flex gap-2 mb-4">
+                  <CardContent className="pt-0">
+                    <div className="flex flex-col sm:flex-row gap-2 mb-4">
                       <Select value={item.status} onValueChange={(value: ReadingItem['status']) => updateBookStatus(item.id, value)}>
-                        <SelectTrigger className="w-32">
+                        <SelectTrigger className="w-full sm:w-32">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent className="bg-popover border z-50">
@@ -371,7 +378,7 @@ export default function Reading() {
                         variant="outline"
                         size="sm"
                         onClick={() => setShowNoteForm(showNoteForm === item.id ? null : item.id)}
-                        className="flex items-center gap-1"
+                        className="flex items-center gap-1 w-full sm:w-auto"
                       >
                         <Lightbulb size={14} />
                         Add Note
@@ -388,11 +395,12 @@ export default function Reading() {
                           rows={3}
                           className="mb-2"
                         />
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button 
                             size="sm" 
                             onClick={() => addNote(item.id)}
                             disabled={!noteForm.content.trim()}
+                            className="w-full sm:w-auto"
                           >
                             Save Note
                           </Button>
@@ -400,6 +408,7 @@ export default function Reading() {
                             size="sm" 
                             variant="outline" 
                             onClick={() => setShowNoteForm(null)}
+                            className="w-full sm:w-auto"
                           >
                             Cancel
                           </Button>
@@ -410,7 +419,7 @@ export default function Reading() {
                     {/* Existing Notes */}
                     {getItemNotes(item.id).length > 0 && (
                       <div className="border-t border-notebook-lines pt-4 mt-4">
-                        <h4 className="text-sm font-medium text-ink mb-2 flex items-center gap-1">
+                        <h4 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
                           <FileText size={14} />
                           Notes ({getItemNotes(item.id).length})
                         </h4>
@@ -420,7 +429,7 @@ export default function Reading() {
                               <div className="text-xs text-muted-foreground mb-1">
                                 {formatDate(note.createdAt)} at {formatTime(note.createdAt)}
                               </div>
-                              <p className="text-ink whitespace-pre-wrap">{note.content}</p>
+                              <p className="text-foreground whitespace-pre-wrap text-sm">{note.content}</p>
                             </div>
                           ))}
                           {getItemNotes(item.id).length > 2 && (
