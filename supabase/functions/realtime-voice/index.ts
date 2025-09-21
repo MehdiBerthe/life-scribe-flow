@@ -14,7 +14,7 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Handle regular HTTP requests (for testing)
+  // Handle regular HTTP requests (for testing) - no auth required
   if (req.method === 'POST') {
     console.log('Regular HTTP POST request - service health check');
     try {
@@ -48,6 +48,7 @@ serve(async (req) => {
     }
   }
 
+  // Handle WebSocket upgrade requests - no auth required
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
 
