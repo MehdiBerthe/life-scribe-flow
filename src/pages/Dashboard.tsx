@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { NotebookPage } from '@/components/NotebookPage';
 import AICopilot from '@/components/AICopilot';
+import { useVectorization } from '@/hooks/useVectorization';
 import { storage, formatDate, isToday } from '@/lib/storage';
 import { DailyGoal, JournalEntry, Transaction } from '@/types';
 import { 
@@ -16,13 +18,16 @@ import {
   Users,
   BarChart3,
   CheckCircle2,
-  Brain
+  Brain,
+  Database,
+  RefreshCw
 } from 'lucide-react';
 
 export default function Dashboard() {
   const [todayGoals, setTodayGoals] = useState<DailyGoal[]>([]);
   const [recentEntries, setRecentEntries] = useState<JournalEntry[]>([]);
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const { vectorizeAllData, vectorizeContacts, isVectorizing, progress } = useVectorization();
 
   useEffect(() => {
     // Load today's goals
@@ -55,11 +60,15 @@ export default function Dashboard() {
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="copilot" className="flex items-center gap-2">
             <Brain size={16} />
             AI Co-Pilot
+          </TabsTrigger>
+          <TabsTrigger value="setup" className="flex items-center gap-2">
+            <Database size={16} />
+            Data Setup
           </TabsTrigger>
         </TabsList>
         
@@ -205,6 +214,57 @@ export default function Dashboard() {
         
         <TabsContent value="copilot" className="mt-6">
           <AICopilot />
+        </TabsContent>
+        
+        <TabsContent value="setup" className="mt-6 space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Data Vectorization
+              </CardTitle>
+              <CardDescription>
+                Process your data to enable AI semantic search and intelligent insights.
+                This creates embeddings of your journal entries, contacts, goals, and other data.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isVectorizing ? (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>{progress.type}</span>
+                    <span>{progress.current}/{progress.total}</span>
+                  </div>
+                  <Progress 
+                    value={progress.total > 0 ? (progress.current / progress.total) * 100 : 0} 
+                    className="w-full"
+                  />
+                </div>
+              ) : (
+                <div className="flex gap-3">
+                  <Button onClick={vectorizeAllData} className="flex items-center gap-2">
+                    <RefreshCw className="h-4 w-4" />
+                    Vectorize All Data
+                  </Button>
+                  <Button variant="outline" onClick={vectorizeContacts} className="flex items-center gap-2">
+                    <Database className="h-4 w-4" />
+                    Vectorize Contacts Only
+                  </Button>
+                </div>
+              )}
+              
+              <div className="text-sm text-muted-foreground">
+                <p>
+                  <strong>First time?</strong> Click "Vectorize All Data" to process all your existing information.
+                  This may take a few minutes depending on how much data you have.
+                </p>
+                <p className="mt-2">
+                  <strong>Regular updates:</strong> The AI will automatically process new data as you add it,
+                  but you can manually refresh if needed.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>
