@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.tool-contacts]
 verify_jwt = false
+
+[functions.daily-digests]
+verify_jwt = false

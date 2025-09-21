@@ -9,6 +9,7 @@ import { NotebookPage } from '@/components/NotebookPage';
 import { storage, generateId, formatDate, formatTime } from '@/lib/storage';
 import { JournalEntry, JOURNAL_AREAS } from '@/types';
 import { PenTool, Plus, Tag } from 'lucide-react';
+import { indexForRag } from '@/lib/rag';
 
 export default function Journal() {
   const [entries, setEntries] = useState<JournalEntry[]>([]);
@@ -26,7 +27,7 @@ export default function Journal() {
     setEntries(sortedEntries);
   }, []);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     const newEntry: JournalEntry = {
@@ -41,6 +42,19 @@ export default function Journal() {
     const updatedEntries = [newEntry, ...entries];
     setEntries(updatedEntries);
     storage.journal.save(updatedEntries);
+
+    // Index for RAG
+    await indexForRag({
+      userId: 'single-user',
+      kind: 'journal',
+      refId: newEntry.id,
+      title: newEntry.title,
+      content: newEntry.content,
+      metadata: {
+        area: newEntry.area,
+        tags: newEntry.tags
+      }
+    });
 
     // Reset form
     setFormData({ area: '', title: '', content: '', tags: '' });

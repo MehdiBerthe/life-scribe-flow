@@ -7,6 +7,7 @@ import { storage, generateId, formatDate, isToday } from '@/lib/storage';
 import { DailyGoal } from '@/types';
 import { Target, Plus, CheckCircle2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { indexForRag } from '@/lib/rag';
 
 export function DailyGoals() {
   const [goals, setGoals] = useState<DailyGoal[]>([]);
@@ -20,7 +21,7 @@ export function DailyGoals() {
   const todayGoals = goals.filter(goal => isToday(goal.date));
   const completedToday = todayGoals.filter(goal => goal.done).length;
 
-  const addGoal = (e: React.FormEvent) => {
+  const addGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newGoal.trim()) return;
 
@@ -35,6 +36,19 @@ export function DailyGoals() {
     setGoals(updatedGoals);
     storage.dailyGoals.save(updatedGoals);
     setNewGoal('');
+
+    // Index for RAG
+    await indexForRag({
+      userId: 'single-user',
+      kind: 'goal_digest',
+      refId: goal.id,
+      title: `Daily Goal: ${goal.title}`,
+      content: `Goal set: ${goal.title}`,
+      metadata: {
+        area: 'Professional',
+        goal_status: 'created'
+      }
+    });
     
     toast({
       title: "Goal Added",

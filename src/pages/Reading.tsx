@@ -75,7 +75,7 @@ export default function Reading() {
     });
   };
 
-  const addNote = (itemId: string) => {
+  const addNote = async (itemId: string) => {
     if (!noteForm.content.trim()) return;
 
     const newNote: ReadingNote = {
@@ -89,10 +89,24 @@ export default function Reading() {
     setNotes(updatedNotes);
     storage.readingNotes.save(updatedNotes);
 
+    // Index for RAG
+    const book = items.find(item => item.id === itemId);
+    await indexForRag({
+      userId: 'single-user',
+      kind: 'reading_note',
+      refId: newNote.id,
+      title: book ? `Note: ${book.title}` : 'Reading Note',
+      content: newNote.content,
+      metadata: {
+        book_title: book?.title,
+        book_author: book?.author,
+        book_category: book?.category
+      }
+    });
+
     setNoteForm({ content: '' });
     setShowNoteForm(null);
     
-    const book = items.find(item => item.id === itemId);
     toast({
       title: "Note Added",
       description: `Note added for "${book?.title}"`
