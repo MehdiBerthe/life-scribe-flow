@@ -79,6 +79,104 @@ const availableFunctions = [
         required: ["message", "due_date"]
       }
     }
+  },
+  {
+    type: "function",
+    function: {
+      name: "send_whatsapp_message",
+      description: "Send a WhatsApp message to a contact",
+      parameters: {
+        type: "object",
+        properties: {
+          contact_id: { type: "string", description: "Contact ID to send message to" },
+          message: { type: "string", description: "Message content to send" },
+          contact_name: { type: "string", description: "Contact name for reference" }
+        },
+        required: ["contact_id", "message"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_calendar_event",
+      description: "Add an event to the user's calendar",
+      parameters: {
+        type: "object",
+        properties: {
+          title: { type: "string", description: "Event title" },
+          start_time: { type: "string", description: "Start time (ISO string)" },
+          end_time: { type: "string", description: "End time (ISO string)" },
+          description: { type: "string", description: "Event description" },
+          location: { type: "string", description: "Event location" },
+          attendees: { type: "array", items: { type: "string" }, description: "List of attendee emails" }
+        },
+        required: ["title", "start_time"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_calendar_events",
+      description: "Get upcoming calendar events",
+      parameters: {
+        type: "object",
+        properties: {
+          days_ahead: { type: "number", description: "Number of days to look ahead", default: 7 },
+          limit: { type: "number", description: "Maximum number of events to return", default: 10 }
+        }
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "update_goal_progress",
+      description: "Update progress on a goal",
+      parameters: {
+        type: "object",
+        properties: {
+          goal_title: { type: "string", description: "Goal title or identifier" },
+          progress_update: { type: "string", description: "Progress description" },
+          completion_percentage: { type: "number", description: "Completion percentage (0-100)" }
+        },
+        required: ["goal_title", "progress_update"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_journal_entry",
+      description: "Add a new journal entry",
+      parameters: {
+        type: "object",
+        properties: {
+          content: { type: "string", description: "Journal entry content" },
+          mood: { type: "string", description: "User's mood (happy, neutral, sad, etc.)" },
+          tags: { type: "array", items: { type: "string" }, description: "Tags for the entry" }
+        },
+        required: ["content"]
+      }
+    }
+  },
+  {
+    type: "function",
+    function: {
+      name: "track_physical_activity",
+      description: "Track a physical activity or exercise",
+      parameters: {
+        type: "object",
+        properties: {
+          activity_type: { type: "string", description: "Type of activity (running, gym, walking, etc.)" },
+          duration_minutes: { type: "number", description: "Duration in minutes" },
+          intensity: { type: "string", enum: ["low", "medium", "high"], description: "Activity intensity" },
+          notes: { type: "string", description: "Additional notes about the activity" }
+        },
+        required: ["activity_type", "duration_minutes"]
+      }
+    }
   }
 ];
 
@@ -222,6 +320,186 @@ async function scheduleReminder(params: any) {
   return { success: true, reminder: data };
 }
 
+async function sendWhatsAppMessage(params: any) {
+  console.log('Sending WhatsApp message:', params);
+  
+  const { data, error } = await supabase
+    .from('ai_actions')
+    .insert({
+      action_type: 'send_whatsapp',
+      action_data: {
+        contact_id: params.contact_id,
+        message: params.message,
+        contact_name: params.contact_name
+      },
+      user_id: 'single-user'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to queue WhatsApp message: ${error.message}`);
+  }
+
+  return { 
+    success: true, 
+    message: `WhatsApp message queued for ${params.contact_name || 'contact'}`,
+    action: data 
+  };
+}
+
+async function addCalendarEvent(params: any) {
+  console.log('Adding calendar event:', params);
+  
+  const { data, error } = await supabase
+    .from('ai_actions')
+    .insert({
+      action_type: 'add_calendar_event',
+      action_data: {
+        title: params.title,
+        start_time: params.start_time,
+        end_time: params.end_time,
+        description: params.description,
+        location: params.location,
+        attendees: params.attendees
+      },
+      user_id: 'single-user'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to create calendar event: ${error.message}`);
+  }
+
+  return { 
+    success: true, 
+    message: `Calendar event "${params.title}" scheduled for ${new Date(params.start_time).toLocaleString()}`,
+    event: data 
+  };
+}
+
+async function getCalendarEvents(params: any) {
+  console.log('Getting calendar events for next', params.days_ahead || 7, 'days');
+  
+  // For now, return upcoming reminders as calendar events
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + (params.days_ahead || 7));
+  
+  const { data, error } = await supabase
+    .from('ai_actions')
+    .select('*')
+    .eq('action_type', 'schedule_reminder')
+    .eq('user_id', 'single-user')
+    .gte('action_data->due_date', startDate.toISOString())
+    .lte('action_data->due_date', endDate.toISOString())
+    .order('action_data->due_date', { ascending: true })
+    .limit(params.limit || 10);
+
+  if (error) {
+    console.error('Error getting calendar events:', error);
+    return { events: [] };
+  }
+
+  const events = (data || []).map(item => ({
+    title: item.action_data.message,
+    start_time: item.action_data.due_date,
+    type: item.action_data.type || 'reminder',
+    id: item.id
+  }));
+
+  return { events };
+}
+
+async function updateGoalProgress(params: any) {
+  console.log('Updating goal progress:', params);
+  
+  const { data, error } = await supabase
+    .from('ai_actions')
+    .insert({
+      action_type: 'update_goal',
+      action_data: {
+        goal_title: params.goal_title,
+        progress_update: params.progress_update,
+        completion_percentage: params.completion_percentage,
+        date: new Date().toISOString()
+      },
+      user_id: 'single-user'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to update goal progress: ${error.message}`);
+  }
+
+  return { 
+    success: true, 
+    message: `Progress updated for "${params.goal_title}": ${params.progress_update}`,
+    update: data 
+  };
+}
+
+async function addJournalEntry(params: any) {
+  console.log('Adding journal entry:', params);
+  
+  const { data, error } = await supabase
+    .from('ai_actions')
+    .insert({
+      action_type: 'add_journal_entry',
+      action_data: {
+        content: params.content,
+        mood: params.mood,
+        tags: params.tags,
+        date: new Date().toISOString()
+      },
+      user_id: 'single-user'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to add journal entry: ${error.message}`);
+  }
+
+  return { 
+    success: true, 
+    message: `Journal entry added for ${new Date().toLocaleDateString()}`,
+    entry: data 
+  };
+}
+
+async function trackPhysicalActivity(params: any) {
+  console.log('Tracking physical activity:', params);
+  
+  const { data, error } = await supabase
+    .from('ai_actions')
+    .insert({
+      action_type: 'track_activity',
+      action_data: {
+        activity_type: params.activity_type,
+        duration_minutes: params.duration_minutes,
+        intensity: params.intensity,
+        notes: params.notes,
+        date: new Date().toISOString()
+      },
+      user_id: 'single-user'
+    })
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(`Failed to track activity: ${error.message}`);
+  }
+
+  return { 
+    success: true, 
+    message: `Tracked ${params.duration_minutes} minutes of ${params.activity_type}`,
+    activity: data 
+  };
+}
+
 // Main chat function
 async function processChat(messages: any[], conversationId?: string) {
   console.log('Processing chat with', messages.length, 'messages');
@@ -241,13 +519,27 @@ CONTEXT FROM USER'S DATA:
 ${contextText}
 
 You can help with:
-- Managing contacts and CRM activities
-- Analyzing patterns in their journal, goals, and activities
+- Managing contacts and CRM activities (create, search, send WhatsApp messages)
+- Calendar management (add events, view upcoming schedule)
+- Goal tracking and progress updates
+- Journal entries and mood tracking
+- Physical activity and exercise logging
 - Scheduling reminders and follow-ups
+- Analyzing patterns in their journal, goals, and activities
 - Providing insights based on their data
-- Taking actions like creating contacts, searching data, etc.
+- Taking specific actions in the app on their behalf
 
-Be conversational, helpful, and proactive. Use the available functions when appropriate to help the user accomplish their goals.
+AVAILABLE ACTIONS:
+- Send WhatsApp messages to contacts from the CRM
+- Add calendar events and view upcoming schedule
+- Update goal progress and track achievements
+- Add journal entries with mood and tags
+- Track physical activities and exercises
+- Schedule reminders for any purpose
+- Search and manage contacts
+- Analyze recent activity patterns
+
+Be conversational, helpful, and proactive. Use the available functions when appropriate to help the user accomplish their goals. When taking actions, confirm what you're doing and provide helpful feedback about the results.
 
 Current date: ${new Date().toISOString().split('T')[0]}`;
 
@@ -296,6 +588,24 @@ Current date: ${new Date().toISOString().split('T')[0]}`;
         break;
       case 'schedule_reminder':
         functionResult = await scheduleReminder(functionArgs);
+        break;
+      case 'send_whatsapp_message':
+        functionResult = await sendWhatsAppMessage(functionArgs);
+        break;
+      case 'add_calendar_event':
+        functionResult = await addCalendarEvent(functionArgs);
+        break;
+      case 'get_calendar_events':
+        functionResult = await getCalendarEvents(functionArgs);
+        break;
+      case 'update_goal_progress':
+        functionResult = await updateGoalProgress(functionArgs);
+        break;
+      case 'add_journal_entry':
+        functionResult = await addJournalEntry(functionArgs);
+        break;
+      case 'track_physical_activity':
+        functionResult = await trackPhysicalActivity(functionArgs);
         break;
       default:
         functionResult = { error: `Unknown function: ${functionName}` };
