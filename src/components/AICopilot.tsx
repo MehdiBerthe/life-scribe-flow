@@ -178,8 +178,8 @@ const AICopilot: React.FC<AICopilotProps> = ({
           {messages.map(message => <div key={message.id} className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               {message.role === 'assistant'}
               
-              <div className={`max-w-[70%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                <div className={`p-4 rounded-2xl ${message.role === 'user' ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted'}`}>
+              <div className={`max-w-[85%] ${message.role === 'user' ? 'order-first' : ''}`}>
+                <div className={`p-6 rounded-2xl ${message.role === 'user' ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted'}`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                   
                   {message.function_call && <div className="mt-3 p-3 bg-background/20 rounded-lg text-xs">
