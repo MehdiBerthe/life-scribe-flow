@@ -87,15 +87,22 @@ serve(async (req) => {
       
       // Connect to OpenAI Realtime API with retry logic
       const connectToOpenAI = () => {
-        const openAIUrl = "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01";
+        const openAIUrl = `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
         console.log('Connecting to OpenAI:', openAIUrl);
         
-        openAISocket = new WebSocket(openAIUrl, [], {
-          headers: {
-            "Authorization": `Bearer ${openAIKey}`,
-            "OpenAI-Beta": "realtime=v1",
-          },
-        });
+        // Create WebSocket connection with proper authentication
+        try {
+          openAISocket = new WebSocket(openAIUrl, [], {
+            headers: {
+              "Authorization": `Bearer ${openAIKey}`,
+              "OpenAI-Beta": "realtime=v1",
+            },
+          });
+        } catch (error) {
+          console.error('Error creating WebSocket with headers:', error);
+          // Fallback: try without headers object  
+          openAISocket = new WebSocket(openAIUrl);
+        }
 
         openAISocket.onopen = () => {
           console.log('Connected to OpenAI Realtime API');
