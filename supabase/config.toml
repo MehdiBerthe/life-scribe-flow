@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.compress-snippets]
 verify_jwt = false
+
+[functions.agent-route]
+verify_jwt = false
