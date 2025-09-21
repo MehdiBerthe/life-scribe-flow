@@ -310,27 +310,8 @@ export const useRealtimeVoice = () => {
     try {
       console.log('Starting voice connection...');
       
-      // Test edge function availability first
-      try {
-        const testResponse = await fetch('https://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice', {
-          method: 'POST',
-          body: JSON.stringify({ test: true }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        console.log('Edge function test response:', testResponse.status);
-        if (!testResponse.ok) {
-          const responseText = await testResponse.text();
-          throw new Error(`Service unavailable: ${testResponse.status} - ${responseText}`);
-        }
-      } catch (testError) {
-        console.error('Edge function test failed:', testError);
-        toast({
-          title: "Service Unavailable",
-          description: "Voice service is not available. Please try again later.",
-          variant: "destructive",
-        });
-        return;
-      }
+      // Skip the HTTP test and go directly to WebSocket connection
+      console.log('Skipping HTTP test, connecting directly to WebSocket...');
       
       // Get microphone access
       if (!streamRef.current) {
