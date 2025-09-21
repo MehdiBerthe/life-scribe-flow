@@ -11,6 +11,7 @@ import Reading from "./pages/Reading";
 import Finance from "./pages/Finance";
 import Physical from "./pages/Physical";
 import Social from "./pages/Social";
+import AICopilotPage from "./pages/AICopilotPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
               <Route path="/finance" element={<Finance />} />
               <Route path="/physical" element={<Physical />} />
               <Route path="/social" element={<Social />} />
+              <Route path="/ai-copilot" element={<AICopilotPage />} />
               {/* Legacy routes for backwards compatibility */}
               <Route path="/goals" element={<Planning />} />
               <Route path="/review" element={<Planning />} />
