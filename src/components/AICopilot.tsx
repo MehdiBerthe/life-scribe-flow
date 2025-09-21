@@ -195,108 +195,103 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
   }
 
   return (
-    <Card className="h-[600px] w-full max-w-2xl mx-auto flex flex-col">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-        <CardTitle className="flex items-center gap-2">
-          <Bot className="h-5 w-5 text-primary" />
-          AI Co-Pilot
-        </CardTitle>
-        {onClose && (
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            ×
-          </Button>
-        )}
-      </CardHeader>
-      
-      <CardContent className="flex-1 flex flex-col p-0">
-        <ScrollArea className="flex-1 px-4">
-          <div className="space-y-4 pb-4">
-            {messages.map((message) => (
+    <div className="h-[calc(100vh-12rem)] w-full max-w-4xl mx-auto flex flex-col bg-background">
+      {/* Messages Area */}
+      <ScrollArea className="flex-1 px-4">
+        <div className="space-y-6 py-4 max-w-3xl mx-auto">
+          {messages.map((message) => (
+            <div
+              key={message.id}
+              className={`flex gap-4 ${
+                message.role === 'user' ? 'justify-end' : 'justify-start'
+              }`}
+            >
+              {message.role === 'assistant' && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                  <Bot className="h-4 w-4 text-primary-foreground" />
+                </div>
+              )}
+              
               <div
-                key={message.id}
-                className={`flex gap-3 ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
+                className={`max-w-[70%] ${
+                  message.role === 'user' ? 'order-first' : ''
                 }`}
               >
                 <div
-                  className={`flex gap-2 max-w-[80%] ${
-                    message.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                  className={`p-4 rounded-2xl ${
+                    message.role === 'user'
+                      ? 'bg-primary text-primary-foreground ml-auto'
+                      : 'bg-muted'
                   }`}
                 >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    {message.role === 'user' ? (
-                      <User className="h-4 w-4" />
-                    ) : (
-                      <Bot className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
+                  <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                   
-                  <div
-                    className={`p-3 rounded-lg ${
-                      message.role === 'user'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
-                  >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    
-                    {message.function_call && (
-                      <div className="mt-2 p-2 bg-background/50 rounded text-xs">
-                        <div className="font-medium">Action: {message.function_call.name}</div>
-                        {message.function_call.result && (
-                          <div className="text-muted-foreground mt-1">
-                            Result: {JSON.stringify(message.function_call.result, null, 2)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                    
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {message.timestamp.toLocaleTimeString()}
+                  {message.function_call && (
+                    <div className="mt-3 p-3 bg-background/20 rounded-lg text-xs">
+                      <div className="font-medium opacity-80">Action: {message.function_call.name}</div>
+                      {message.function_call.result && (
+                        <div className="opacity-60 mt-1">
+                          Result: {JSON.stringify(message.function_call.result, null, 2)}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
                 </div>
               </div>
-            ))}
-            
-            {isLoading && (
-              <div className="flex gap-3 justify-start">
-                <div className="flex gap-2">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                    <Bot className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="p-3 rounded-lg bg-muted">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  </div>
+
+              {message.role === 'user' && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                  <User className="h-4 w-4" />
                 </div>
+              )}
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex gap-4 justify-start">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <Bot className="h-4 w-4 text-primary-foreground" />
               </div>
-            )}
-          </div>
-          <div ref={messagesEndRef} />
-        </ScrollArea>
-        
-        <div className="p-4 border-t">
-          <div className="flex gap-2">
+              <div className="p-4 rounded-2xl bg-muted">
+                <Loader2 className="h-4 w-4 animate-spin" />
+              </div>
+            </div>
+          )}
+        </div>
+        <div ref={messagesEndRef} />
+      </ScrollArea>
+      
+      {/* Input Area */}
+      <div className="border-t bg-background">
+        <div className="max-w-3xl mx-auto p-4">
+          <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Ask me anything about your data, or tell me what you'd like to do..."
+              placeholder="Message AI Co-Pilot"
               disabled={isLoading}
-              className="flex-1"
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground"
             />
             
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon"
               onClick={toggleListening}
               disabled={isLoading}
-              className={isListening ? 'bg-red-500 hover:bg-red-600 text-white' : ''}
+              className={`h-8 w-8 rounded-full ${
+                isListening ? 'bg-red-500 hover:bg-red-600 text-white' : 'hover:bg-background'
+              }`}
             >
               {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
             
-            <Button onClick={sendMessage} disabled={isLoading || !input.trim()}>
+            <Button 
+              onClick={sendMessage} 
+              disabled={isLoading || !input.trim()}
+              size="icon"
+              className="h-8 w-8 rounded-full"
+            >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -305,8 +300,8 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
             </Button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

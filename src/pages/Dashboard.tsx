@@ -54,10 +54,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 md:space-y-8 mobile-container">
-      <div className="text-center">
-        <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-2">LifeX</h1>
-        <p className="text-muted-foreground text-sm md:text-base">Your AI-powered life operating system</p>
-      </div>
 
       <Tabs defaultValue="copilot" className="w-full">
         <TabsList className="grid w-full grid-cols-2 h-auto">
