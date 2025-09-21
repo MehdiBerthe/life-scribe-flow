@@ -11,6 +11,7 @@ import { storage, generateId, formatDate, formatTime } from '@/lib/storage';
 import { ReadingItem, ReadingNote, BOOK_CATEGORIES } from '@/types';
 import { BookOpen, Plus, FileText, ExternalLink, Lightbulb, Edit } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { indexForRag } from '@/lib/rag';
 
 export default function Reading() {
   const [items, setItems] = useState<ReadingItem[]>([]);

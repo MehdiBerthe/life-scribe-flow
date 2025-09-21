@@ -8,6 +8,7 @@ import { storage, generateId, formatDate, getWeekStart } from '@/lib/storage';
 import { WeeklyReview, JournalEntry, DailyGoal, Transaction } from '@/types';
 import { BarChart3, ChevronDown, ChevronRight, Plus, Calendar, Target, DollarSign, PenTool } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { indexForRag } from '@/lib/rag';
 
 export default function Review() {
   const [reviews, setReviews] = useState<WeeklyReview[]>([]);
@@ -66,7 +67,7 @@ export default function Review() {
     setShowWizard(true);
   };
 
-  const saveReview = (e: React.FormEvent) => {
+  const saveReview = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!wizardData.summary.trim()) {
@@ -89,6 +90,19 @@ export default function Review() {
     const updatedReviews = [newReview, ...reviews];
     setReviews(updatedReviews);
     storage.weeklyReviews.save(updatedReviews);
+
+    // Index for RAG
+    await indexForRag({
+      userId: 'single-user',
+      kind: 'reflection',
+      refId: newReview.id,
+      title: `Weekly Review - ${formatDate(newReview.weekStart)}`,
+      content: `Summary: ${newReview.summary}${newReview.commitments ? `\n\nCommitments: ${JSON.stringify(newReview.commitments)}` : ''}`,
+      metadata: {
+        week_start: newReview.weekStart.toISOString(),
+        review_type: 'weekly'
+      }
+    });
 
     setShowWizard(false);
     setWizardData({ weekStart: getWeekStart(), summary: '', commitments: '' });

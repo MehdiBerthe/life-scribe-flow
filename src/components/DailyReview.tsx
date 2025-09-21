@@ -8,6 +8,7 @@ import { storage, generateId, formatDate } from '@/lib/storage';
 import { EndOfDayReview, DAILY_CHECKLIST_SIMPLIFIED } from '@/types';
 import { Moon, Plus } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { indexForRag } from '@/lib/rag';
 
 export function DailyReview() {
   const [reviews, setReviews] = useState<EndOfDayReview[]>([]);
@@ -41,7 +42,7 @@ export function DailyReview() {
     }
   }, [showReviewForm]);
 
-  const addReview = (e: React.FormEvent) => {
+  const addReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!reviewForm.wentWell.trim() || !reviewForm.couldImprove.trim()) {
       toast({
@@ -70,6 +71,20 @@ export function DailyReview() {
     const updatedReviews = [review, ...reviews];
     setReviews(updatedReviews);
     storage.endOfDayReviews.save(updatedReviews);
+
+    // Index for RAG
+    await indexForRag({
+      userId: 'single-user',
+      kind: 'reflection',
+      refId: review.id,
+      title: `Daily Review - ${formatDate(review.date)}`,
+      content: `What went well: ${review.wentWell}\n\nWhat could improve: ${review.couldImprove}${review.keyAccomplishments ? `\n\nKey accomplishments: ${review.keyAccomplishments}` : ''}${review.lessonsLearned ? `\n\nLessons learned: ${review.lessonsLearned}` : ''}${review.tomorrowsFocus ? `\n\nTomorrow's focus: ${review.tomorrowsFocus}` : ''}${review.gratitude ? `\n\nGratitude: ${review.gratitude}` : ''}`,
+      metadata: {
+        mood: review.mood,
+        energy_level: review.energyLevel,
+        review_type: 'daily'
+      }
+    });
     
     setReviewForm({
       wentWell: '',
