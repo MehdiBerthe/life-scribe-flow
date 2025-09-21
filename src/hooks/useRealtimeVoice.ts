@@ -18,12 +18,14 @@ export const useRealtimeVoice = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
+  const [connectionAttempts, setConnectionAttempts] = useState(0);
   
   const socketRef = useRef<WebSocket | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioQueueRef = useRef<AudioQueue>({ chunks: [], isPlaying: false });
   const streamRef = useRef<MediaStream | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize audio context
   useEffect(() => {
@@ -131,7 +133,7 @@ export const useRealtimeVoice = () => {
   const handleMessage = useCallback((event: MessageEvent) => {
     try {
       const data: RealtimeMessage = JSON.parse(event.data);
-      console.log('Received realtime message:', data.type, data);
+      console.log('Received realtime message:', data.type);
       
       switch (data.type) {
         case 'session.created':
@@ -140,6 +142,7 @@ export const useRealtimeVoice = () => {
           
         case 'session.updated':
           console.log('Session updated successfully');
+          setConnectionAttempts(0); // Reset on successful session
           break;
           
         case 'input_audio_buffer.speech_started':
@@ -180,7 +183,7 @@ export const useRealtimeVoice = () => {
           console.error('Realtime API error:', data);
           toast({
             title: "Voice Error",
-            description: data.error?.message || "An error occurred during voice interaction",
+            description: data.error?.message || data.message || "An error occurred during voice interaction",
             variant: "destructive",
           });
           break;
@@ -190,83 +193,70 @@ export const useRealtimeVoice = () => {
     }
   }, [toast, queueAudio]);
 
-  // Connect to realtime voice
-  const connect = useCallback(async () => {
-    try {
-      console.log('Starting voice connection...');
-      
-      // Test connection first with a simple HTTP request
-      try {
-        const testResponse = await fetch('https://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice', {
-          method: 'POST',
-          body: JSON.stringify({ test: true }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-        console.log('Edge function test response:', testResponse.status);
-      } catch (testError) {
-        console.error('Edge function test failed:', testError);
+  // Auto-reconnect function
+  const attemptReconnect = useCallback(async () => {
+    if (connectionAttempts >= 3) {
+      console.log('Max reconnection attempts reached');
+      toast({
+        title: "Connection Failed",
+        description: "Unable to maintain voice connection after multiple attempts. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    console.log(`Attempting reconnection ${connectionAttempts + 1}/3`);
+    setConnectionAttempts(prev => prev + 1);
+    
+    // Wait a bit before reconnecting
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    if (streamRef.current) {
+      connectWebSocket();
+    }
+  }, [connectionAttempts]);
+
+  // Connect WebSocket only
+  const connectWebSocket = useCallback(() => {
+    const wsUrl = `wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice`;
+    console.log('Connecting WebSocket to:', wsUrl);
+    
+    socketRef.current = new WebSocket(wsUrl);
+    
+    // Set up connection timeout
+    const connectionTimeout = setTimeout(() => {
+      if (socketRef.current && socketRef.current.readyState === WebSocket.CONNECTING) {
+        console.log('WebSocket connection timeout');
+        socketRef.current.close();
         toast({
-          title: "Service Unavailable",
-          description: "Voice service is not available. Please try again later.",
+          title: "Connection Timeout",
+          description: "Could not connect to voice service. Please try again.",
           variant: "destructive",
         });
-        return;
       }
+    }, 10000); // 10 second timeout
+    
+    socketRef.current.onopen = () => {
+      console.log('WebSocket connected successfully');
+      clearTimeout(connectionTimeout);
+      setIsConnected(true);
+      setConnectionAttempts(0);
       
-      // Get microphone access first
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          sampleRate: 24000,
-          channelCount: 1,
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true,
-        }
+      toast({
+        title: "Voice Connected",
+        description: "You can now speak to Lexa",
       });
       
-      console.log('Microphone access granted');
-      streamRef.current = stream;
-
-      // Create WebSocket connection with proper error handling
-      const wsUrl = `wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice`;
-      console.log('Connecting to:', wsUrl);
-      
-      socketRef.current = new WebSocket(wsUrl);
-      
-      // Set up connection timeout
-      const connectionTimeout = setTimeout(() => {
-        if (socketRef.current && socketRef.current.readyState === WebSocket.CONNECTING) {
-          console.log('Connection timeout');
-          socketRef.current.close();
-          toast({
-            title: "Connection Timeout",
-            description: "Could not connect to voice service. Please check your internet connection and try again.",
-            variant: "destructive",
-          });
-        }
-      }, 15000); // 15 second timeout
-      
-      socketRef.current.onopen = () => {
-        console.log('Connected to realtime voice');
-        clearTimeout(connectionTimeout);
-        setIsConnected(true);
-        
-        toast({
-          title: "Voice Connected",
-          description: "You can now speak to Lexa",
-        });
-        
-        // Set up audio processing
-        if (!audioContextRef.current) return;
-        
-        const source = audioContextRef.current.createMediaStreamSource(stream);
+      // Set up audio processing if we have a stream
+      if (streamRef.current && audioContextRef.current) {
+        const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
         const processor = audioContextRef.current.createScriptProcessor(4096, 1, 1);
         
         processor.onaudioprocess = (e) => {
           const inputData = e.inputBuffer.getChannelData(0);
           const audioBase64 = encodeAudioForAPI(new Float32Array(inputData));
           
-          // Send audio to OpenAI
+          // Send audio to OpenAI via edge function
           if (socketRef.current?.readyState === WebSocket.OPEN) {
             socketRef.current.send(JSON.stringify({
               type: 'input_audio_buffer.append',
@@ -277,45 +267,92 @@ export const useRealtimeVoice = () => {
         
         source.connect(processor);
         processor.connect(audioContextRef.current.destination);
-        mediaRecorderRef.current = processor as any; // Store for cleanup
-      };
+        mediaRecorderRef.current = processor as any;
+      }
+    };
+    
+    socketRef.current.onmessage = handleMessage;
+    
+    socketRef.current.onerror = (error) => {
+      console.error('WebSocket error:', error);
+      clearTimeout(connectionTimeout);
+      setIsConnected(false);
+      setIsListening(false);
+      setIsSpeaking(false);
       
-      socketRef.current.onmessage = handleMessage;
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to voice service. Please check your internet connection.",
+        variant: "destructive",
+      });
+    };
+    
+    socketRef.current.onclose = (event) => {
+      console.log('WebSocket closed:', event.code, event.reason);
+      clearTimeout(connectionTimeout);
+      setIsConnected(false);
+      setIsListening(false);
+      setIsSpeaking(false);
       
-      socketRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        clearTimeout(connectionTimeout);
-        setIsConnected(false);
-        setIsListening(false);
-        setIsSpeaking(false);
-        
-        // Clean up stream
-        if (streamRef.current) {
-          streamRef.current.getTracks().forEach(track => track.stop());
+      // Only show error and try to reconnect if it wasn't a manual close
+      if (event.code !== 1000 && streamRef.current) {
+        console.log('Connection lost, attempting to reconnect...');
+        if (reconnectTimeoutRef.current) {
+          clearTimeout(reconnectTimeoutRef.current);
         }
-        
+        reconnectTimeoutRef.current = setTimeout(attemptReconnect, 1000);
+      }
+    };
+  }, [handleMessage, encodeAudioForAPI, toast, attemptReconnect]);
+
+  // Connect to realtime voice
+  const connect = useCallback(async () => {
+    try {
+      console.log('Starting voice connection...');
+      
+      // Test edge function availability first
+      try {
+        const testResponse = await fetch('https://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-voice', {
+          method: 'POST',
+          body: JSON.stringify({ test: true }),
+          headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('Edge function test response:', testResponse.status);
+        if (!testResponse.ok) {
+          const responseText = await testResponse.text();
+          throw new Error(`Service unavailable: ${testResponse.status} - ${responseText}`);
+        }
+      } catch (testError) {
+        console.error('Edge function test failed:', testError);
         toast({
-          title: "Connection Error", 
-          description: "Failed to connect to voice service. Please check your internet connection and try again.",
+          title: "Service Unavailable",
+          description: "Voice service is not available. Please try again later.",
           variant: "destructive",
         });
-      };
+        return;
+      }
       
-      socketRef.current.onclose = (event) => {
-        console.log('WebSocket closed:', event.code, event.reason);
-        clearTimeout(connectionTimeout);
-        setIsConnected(false);
-        setIsListening(false);
-        setIsSpeaking(false);
+      // Get microphone access
+      if (!streamRef.current) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            sampleRate: 24000,
+            channelCount: 1,
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          }
+        });
         
-        if (event.code !== 1000) { // Not a normal close
-          toast({
-            title: "Connection Lost",
-            description: "Voice connection was lost. Please try again.",
-            variant: "destructive",
-          });
-        }
-      };
+        console.log('Microphone access granted');
+        streamRef.current = stream;
+      }
+
+      // Reset connection state
+      setConnectionAttempts(0);
+      
+      // Connect WebSocket
+      connectWebSocket();
 
     } catch (error) {
       console.error('Error connecting to realtime voice:', error);
@@ -325,12 +362,20 @@ export const useRealtimeVoice = () => {
         variant: "destructive",
       });
     }
-  }, [handleMessage, encodeAudioForAPI, toast]);
+  }, [connectWebSocket, toast]);
 
   // Disconnect from realtime voice
   const disconnect = useCallback(() => {
+    console.log('Disconnecting voice service...');
+    
+    // Clear reconnect timeout
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    
     if (socketRef.current) {
-      socketRef.current.close();
+      socketRef.current.close(1000, 'Manual disconnect'); // Normal closure
       socketRef.current = null;
     }
     
@@ -357,6 +402,7 @@ export const useRealtimeVoice = () => {
     setIsSpeaking(false);
     setTranscript('');
     setResponse('');
+    setConnectionAttempts(0);
   }, []);
 
   // Send text message
@@ -382,6 +428,9 @@ export const useRealtimeVoice = () => {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       disconnect();
     };
   }, [disconnect]);
