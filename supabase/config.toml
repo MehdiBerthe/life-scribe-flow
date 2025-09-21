@@ -11,3 +11,9 @@ verify_jwt = false
 
 [functions.agent-route]
 verify_jwt = false
+
+[functions.tool-calendar-create]
+verify_jwt = false
+
+[functions.tool-contacts]
+verify_jwt = false
