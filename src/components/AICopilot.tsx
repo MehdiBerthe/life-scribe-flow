@@ -207,8 +207,7 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
               }`}
             >
               {message.role === 'assistant' && (
-                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-                  <span className="text-xs font-semibold text-primary-foreground">L</span>
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm">
                 </div>
               )}
               
@@ -249,8 +248,7 @@ const AICopilot: React.FC<AICopilotProps> = ({ isOpen = true, onClose }) => {
           
           {isLoading && (
             <div className="flex gap-4 justify-start">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
-                <span className="text-xs font-semibold text-primary-foreground">L</span>
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm">
               </div>
               <div className="p-4 rounded-2xl bg-muted">
                 <Loader2 className="h-4 w-4 animate-spin" />
