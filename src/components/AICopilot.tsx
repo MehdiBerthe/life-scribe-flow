@@ -3,10 +3,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, User, Mic, MicOff, Send, Sparkles } from 'lucide-react';
+import { Loader2, User, Mic, MicOff, Send, Sparkles, Phone, PhoneOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useRealtimeVoice } from '@/hooks/useRealtimeVoice';
 import '../styles/voice.css';
+
 interface Message {
   id: string;
   role: 'user' | 'assistant';
@@ -18,10 +20,12 @@ interface Message {
   };
   timestamp: Date;
 }
+
 interface AICopilotProps {
   isOpen?: boolean;
   onClose?: () => void;
 }
+
 const AICopilot: React.FC<AICopilotProps> = ({
   isOpen = true,
   onClose
@@ -34,29 +38,100 @@ const AICopilot: React.FC<AICopilotProps> = ({
   }]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isListening, setIsListening] = useState(false);
-  const [isSpeaking, setIsSpeaking] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [useRealtimeMode, setUseRealtimeMode] = useState(false);
+  
+  // Legacy voice states (for non-realtime mode)
+  const [legacyIsListening, setLegacyIsListening] = useState(false);
+  const [legacyIsSpeaking, setLegacyIsSpeaking] = useState(false);
+  
   const { toast } = useToast();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Realtime voice hook
+  const {
+    isConnected,
+    isListening: realtimeIsListening,
+    isSpeaking: realtimeIsSpeaking,
+    transcript,
+    response,
+    connect,
+    disconnect,
+    sendText,
+  } = useRealtimeVoice();
+
+  // Legacy voice recording refs (for non-realtime mode)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Use appropriate state based on mode
+  const isListening = useRealtimeMode ? realtimeIsListening : legacyIsListening;
+  const isSpeaking = useRealtimeMode ? realtimeIsSpeaking : legacyIsSpeaking;
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({
       behavior: 'smooth'
     });
   };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Initialize audio element
+  // Initialize audio element for legacy mode
   useEffect(() => {
     if (!audioRef.current) {
       audioRef.current = new Audio();
     }
   }, []);
+
+  // Add realtime messages to chat
+  useEffect(() => {
+    if (transcript) {
+      const userMessage: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: transcript,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMessage]);
+    }
+  }, [transcript]);
+
+  useEffect(() => {
+    if (response) {
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: response,
+        timestamp: new Date()
+      };
+      setMessages(prev => {
+        const newMessages = [...prev];
+        const lastMessage = newMessages[newMessages.length - 1];
+        if (lastMessage?.role === 'assistant' && !lastMessage.function_call) {
+          // Update the last assistant message
+          newMessages[newMessages.length - 1] = assistantMessage;
+        } else {
+          // Add new assistant message
+          newMessages.push(assistantMessage);
+        }
+        return newMessages;
+      });
+    }
+  }, [response]);
+
+  // Toggle realtime mode
+  const toggleRealtimeMode = useCallback(async () => {
+    if (useRealtimeMode) {
+      disconnect();
+      setUseRealtimeMode(false);
+    } else {
+      await connect();
+      setUseRealtimeMode(true);
+    }
+  }, [useRealtimeMode, connect, disconnect]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -84,7 +159,7 @@ const AICopilot: React.FC<AICopilotProps> = ({
       };
 
       mediaRecorder.start(100);
-      setIsListening(true);
+      setLegacyIsListening(true);
     } catch (error) {
       console.error('Error starting recording:', error);
       toast({
@@ -96,13 +171,13 @@ const AICopilot: React.FC<AICopilotProps> = ({
   }, [toast]);
 
   const stopRecording = useCallback(async () => {
-    if (!mediaRecorderRef.current || !isListening) return;
+    if (!mediaRecorderRef.current || !legacyIsListening) return;
 
     return new Promise<void>((resolve) => {
       const mediaRecorder = mediaRecorderRef.current!;
       
       mediaRecorder.onstop = async () => {
-        setIsListening(false);
+        setLegacyIsListening(false);
         setIsLoading(true);
         
         try {
@@ -150,19 +225,19 @@ const AICopilot: React.FC<AICopilotProps> = ({
       mediaRecorder.stop();
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
     });
-  }, [isListening, toast]);
+  }, [legacyIsListening, toast]);
 
   const toggleListening = useCallback(() => {
-    if (isListening) {
+    if (legacyIsListening) {
       stopRecording();
     } else {
       startRecording();
     }
-  }, [isListening, startRecording, stopRecording]);
+  }, [legacyIsListening, startRecording, stopRecording]);
 
   const speakText = useCallback(async (text: string) => {
     try {
-      setIsSpeaking(true);
+      setLegacyIsSpeaking(true);
       
       const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-speak', {
         body: { text },
@@ -182,7 +257,7 @@ const AICopilot: React.FC<AICopilotProps> = ({
       if (audioRef.current) {
         audioRef.current.src = audioUrl;
         audioRef.current.onended = () => {
-          setIsSpeaking(false);
+          setLegacyIsSpeaking(false);
           URL.revokeObjectURL(audioUrl);
         };
         await audioRef.current.play();
@@ -190,7 +265,7 @@ const AICopilot: React.FC<AICopilotProps> = ({
 
     } catch (error) {
       console.error('Error playing speech:', error);
-      setIsSpeaking(false);
+      setLegacyIsSpeaking(false);
       toast({
         title: "Speech Error",
         description: "Could not play audio response.",
@@ -198,6 +273,7 @@ const AICopilot: React.FC<AICopilotProps> = ({
       });
     }
   }, [toast]);
+
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
     const userMessage: Message = {
@@ -232,8 +308,8 @@ const AICopilot: React.FC<AICopilotProps> = ({
       };
       setMessages(prev => [...prev, assistantMessage]);
 
-      // Speak the response
-      if (data.message && !data.function_call) {
+      // Speak the response (only in legacy mode)
+      if (data.message && !data.function_call && !useRealtimeMode) {
         speakText(data.message);
       }
 
@@ -273,82 +349,184 @@ const AICopilot: React.FC<AICopilotProps> = ({
       setIsLoading(false);
     }
   };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
+
   if (!isOpen) {
     return null;
   }
-  return <div className="h-[calc(100vh-12rem)] w-full max-w-4xl mx-auto flex flex-col bg-background">
+  
+  return (
+    <div className="h-[calc(100vh-12rem)] w-full max-w-4xl mx-auto flex flex-col bg-background">
+      {/* Header with Realtime Toggle */}
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-primary" />
+          <h2 className="font-semibold">AI Co-Pilot</h2>
+        </div>
+        
+        <Button
+          onClick={toggleRealtimeMode}
+          variant={useRealtimeMode ? "default" : "outline"}
+          size="sm"
+          className={`flex items-center gap-2 ${
+            useRealtimeMode ? 'bg-green-500 hover:bg-green-600' : ''
+          }`}
+        >
+          {useRealtimeMode ? <PhoneOff className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
+          {useRealtimeMode ? 'End Call' : 'Voice Call'}
+          {isConnected && (
+            <div className="flex items-center gap-1">
+              {realtimeIsListening && <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />}
+              {realtimeIsSpeaking && <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />}
+            </div>
+          )}
+        </Button>
+      </div>
+
       {/* Messages Area */}
       <ScrollArea className="flex-1 px-4">
         <div className="space-y-6 py-4 max-w-3xl mx-auto">
-          {messages.map(message => <div key={message.id} className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              {message.role === 'assistant'}
+          {messages.map(message => (
+            <div key={message.id} className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              {message.role === 'assistant' && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+              )}
               
               <div className={`max-w-[95%] ${message.role === 'user' ? 'order-first' : ''}`}>
                 <div className={`p-6 rounded-2xl ${message.role === 'user' ? 'bg-primary text-primary-foreground ml-auto' : 'bg-muted'}`}>
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
                   
-                  {message.function_call && <div className="mt-3 p-3 bg-background/20 rounded-lg text-xs">
+                  {message.function_call && (
+                    <div className="mt-3 p-3 bg-background/20 rounded-lg text-xs">
                       <div className="font-medium opacity-80">Action: {message.function_call.name}</div>
-                      {message.function_call.result && <div className="opacity-60 mt-1">
+                      {message.function_call.result && (
+                        <div className="opacity-60 mt-1">
                           Result: {JSON.stringify(message.function_call.result, null, 2)}
-                        </div>}
-                    </div>}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {message.role === 'user' && <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+              {message.role === 'user' && (
+                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                   <User className="h-4 w-4" />
-                </div>}
-            </div>)}
+                </div>
+              )}
+            </div>
+          ))}
           
-          {isLoading && <div className="flex gap-4 justify-start">
+          {isLoading && (
+            <div className="flex gap-4 justify-start">
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm">
               </div>
               <div className="p-4 rounded-2xl bg-muted">
                 <Loader2 className="h-4 w-4 animate-spin" />
               </div>
-            </div>}
+            </div>
+          )}
+            
+          {/* Realtime Status */}
+          {useRealtimeMode && isConnected && (
+            <div className="flex justify-center">
+              <div className="bg-muted/50 backdrop-blur-sm rounded-full px-4 py-2 text-sm text-muted-foreground flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${realtimeIsListening ? 'bg-red-400 animate-pulse' : realtimeIsSpeaking ? 'bg-green-400 animate-pulse' : 'bg-gray-400'}`} />
+                {realtimeIsListening ? 'Listening...' : realtimeIsSpeaking ? 'Speaking...' : 'Connected'}
+              </div>
+            </div>
+          )}
         </div>
         <div ref={messagesEndRef} />
       </ScrollArea>
       
-      {/* Input Area */}
-      <div className="border-t bg-background">
-        <div className="max-w-3xl mx-auto p-4">
-          <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
-            <Input value={input} onChange={e => setInput(e.target.value)} onKeyPress={handleKeyPress} placeholder="Message Lexa" disabled={isLoading} className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" />
-            
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleListening} 
-              disabled={isLoading || isSpeaking} 
-              className={`h-8 w-8 rounded-full transition-colors ${
-                isListening 
-                  ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
-                  : 'hover:bg-background'
-              }`}
-            >
-              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
-            
-            <Button 
-              onClick={sendMessage} 
-              disabled={isLoading || !input.trim() || isSpeaking} 
-              size="icon" 
-              className="h-8 w-8 rounded-full"
-            >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            </Button>
+      {/* Input Area - Only show if not in realtime mode */}
+      {!useRealtimeMode && (
+        <div className="border-t bg-background">
+          <div className="max-w-3xl mx-auto p-4">
+            <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
+              <Input 
+                value={input} 
+                onChange={e => setInput(e.target.value)} 
+                onKeyPress={handleKeyPress} 
+                placeholder="Message Lexa" 
+                disabled={isLoading} 
+                className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
+              />
+              
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleListening} 
+                disabled={isLoading || legacyIsSpeaking} 
+                className={`h-8 w-8 rounded-full transition-colors ${
+                  legacyIsListening 
+                    ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' 
+                    : 'hover:bg-background'
+                }`}
+              >
+                {legacyIsListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              
+              <Button 
+                onClick={sendMessage} 
+                disabled={isLoading || !input.trim() || legacyIsSpeaking} 
+                size="icon" 
+                className="h-8 w-8 rounded-full"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
-    </div>;
+      )}
+      
+      {/* Realtime Text Input */}
+      {useRealtimeMode && isConnected && (
+        <div className="border-t bg-background">
+          <div className="max-w-3xl mx-auto p-4">
+            <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
+              <Input 
+                value={input} 
+                onChange={e => setInput(e.target.value)} 
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey && input.trim()) {
+                    e.preventDefault();
+                    sendText(input.trim());
+                    setInput('');
+                  }
+                }}
+                placeholder="Type to Lexa (or just speak)" 
+                className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
+              />
+              
+              <Button 
+                onClick={() => {
+                  if (input.trim()) {
+                    sendText(input.trim());
+                    setInput('');
+                  }
+                }}
+                disabled={!input.trim()} 
+                size="icon" 
+                className="h-8 w-8 rounded-full"
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
+
 export default AICopilot;
