@@ -89,7 +89,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         // Get AI response
         const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-copilot', {
           body: { 
-            message: userText,
+            messages: [
+              {
+                role: 'user',
+                content: userText
+              }
+            ],
             conversationId: 'voice-session'
           }
         });
