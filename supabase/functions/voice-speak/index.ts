@@ -12,15 +12,18 @@ serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const { text, voice_id } = await req.json();
     
     if (!text) {
       throw new Error('No text provided');
     }
 
-    console.log('Converting text to speech:', text);
+    // Use the provided voice_id or default to Aria
+    const voiceId = voice_id || '9BWtsMINqrJLrRacOk9x'; // Aria voice as default
 
-    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/uYXf8XasLslADfZ2MB4u', {
+    console.log('Converting text to speech:', text, 'with voice:', voiceId);
+
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
         'xi-api-key': Deno.env.get('ELEVENLABS_API_KEY')!,

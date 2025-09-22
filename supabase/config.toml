@@ -23,6 +23,3 @@ verify_jwt = false
 
 [functions.llm-middleware]
 verify_jwt = false
-
-[functions.realtime-voice]
-verify_jwt = false
