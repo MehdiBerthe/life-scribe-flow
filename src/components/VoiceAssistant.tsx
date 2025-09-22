@@ -92,7 +92,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
             messages: [
               {
                 role: 'system',
-                content: 'You are responding via voice interface. Keep responses under 50 words. Be concise and conversational. No lists or bullet points - speak naturally.'
+                content: 'You are responding via voice interface. Keep responses under 30 words. Be conversational, friendly, and direct. No lists, bullet points, or lengthy explanations - just natural speech.'
               },
               {
                 role: 'user',
@@ -117,12 +117,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         
         // Add timeout to prevent hanging on slow TTS
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 7000); // 7 second timeout for faster response
         
         const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-speak', {
           body: { 
             text: aiResponse,
-            voice_id: "9BWtsMINqrJLrRacOk9x" // Aria voice
+            voice_id: "9BWtsMINqrJLrRacOk9x" // Aria voice - fast and clear
           }
         });
         
