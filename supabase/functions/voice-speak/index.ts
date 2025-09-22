@@ -25,7 +25,7 @@ serve(async (req) => {
 
     // Create AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 second timeout for faster response
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 second timeout for ultra fast response
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -35,12 +35,12 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         text: text,
-        model_id: 'eleven_multilingual_v2',
+        model_id: 'eleven_turbo_v2_5', // Faster model
         voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.8,
+          stability: 0.4,
+          similarity_boost: 0.7,
           style: 0.0,
-          use_speaker_boost: true
+          use_speaker_boost: false // Disable for speed
         }
       }),
       signal: controller.signal
