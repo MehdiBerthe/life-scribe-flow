@@ -23,6 +23,10 @@ serve(async (req) => {
 
     console.log('Converting text to speech:', text, 'with voice:', voiceId);
 
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 second timeout
+
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
@@ -39,7 +43,10 @@ serve(async (req) => {
           use_speaker_boost: true
         }
       }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.text();

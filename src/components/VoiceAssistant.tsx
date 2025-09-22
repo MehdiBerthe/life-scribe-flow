@@ -86,10 +86,14 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
           return;
         }
 
-        // Get AI response
+        // Get AI response with voice-optimized instructions
         const { data: aiData, error: aiError } = await supabase.functions.invoke('ai-copilot', {
           body: { 
             messages: [
+              {
+                role: 'system',
+                content: 'You are responding via voice interface. Keep responses under 50 words. Be concise and conversational. No lists or bullet points - speak naturally.'
+              },
               {
                 role: 'user',
                 content: userText
@@ -110,12 +114,19 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
 
         // Convert response to speech with ElevenLabs
         console.log('Calling voice-speak function...');
+        
+        // Add timeout to prevent hanging on slow TTS
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
         const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-speak', {
           body: { 
             text: aiResponse,
             voice_id: "9BWtsMINqrJLrRacOk9x" // Aria voice
           }
         });
+        
+        clearTimeout(timeoutId);
 
         console.log('Voice-speak response:', { speechData, speechError });
 
