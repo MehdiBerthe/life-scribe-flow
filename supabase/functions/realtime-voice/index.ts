@@ -87,22 +87,58 @@ serve(async (req) => {
       
       // Connect to OpenAI Realtime API with retry logic
       const connectToOpenAI = async () => {
-        const openAIUrl = `https://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`;
-        console.log('Connecting to OpenAI:', openAIUrl);
-        
         try {
-          // Create WebSocket connection with proper authentication headers
-          const wsUrl = openAIUrl.replace('https://', 'wss://');
+          console.log('Creating ephemeral token for OpenAI Realtime API...');
           
-          // Use headers as second parameter (Deno WebSocket format)
-          openAISocket = new WebSocket(wsUrl, [], {
-            "Authorization": `Bearer ${openAIKey}`,
-            "OpenAI-Beta": "realtime=v1"
+          // First create an ephemeral token
+          const tokenResponse = await fetch("https://api.openai.com/v1/realtime/client_secrets", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${openAIKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              session: {
+                type: "realtime",
+                model: "gpt-4o-realtime-preview-2024-10-01",
+                audio: {
+                  output: { voice: "alloy" },
+                },
+              },
+            }),
           });
+
+          if (!tokenResponse.ok) {
+            const errorData = await tokenResponse.text();
+            console.error('Failed to create ephemeral token:', tokenResponse.status, errorData);
+            throw new Error(`Failed to create ephemeral token: ${tokenResponse.status}`);
+          }
+
+          const tokenData = await tokenResponse.json();
+          const ephemeralKey = tokenData.client_secret?.value;
+          
+          if (!ephemeralKey) {
+            throw new Error('No ephemeral key received from OpenAI');
+          }
+
+          console.log('Ephemeral token created successfully');
+          
+          // Now create WebSocket connection using ephemeral token
+          openAISocket = new WebSocket(
+            `wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`,
+            {
+              headers: {
+                "Authorization": `Bearer ${ephemeralKey}`,
+                "OpenAI-Beta": "realtime=v1"
+              }
+            }
+          );
+          
+          console.log('WebSocket connection created');
+          
         } catch (error) {
-          console.error('Error creating WebSocket with headers:', error);
-          // Fallback to basic connection
-          openAISocket = new WebSocket(`wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01`);
+          console.error('Error creating ephemeral token or WebSocket:', error);
+          throw error;
         }
         
         openAISocket.onopen = () => {
