@@ -1,7 +1,7 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Mic, Volume2, VolumeX } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -16,14 +16,19 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
   const [isProcessing, setIsProcessing] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [response, setResponse] = useState('');
+  const [isActive, setIsActive] = useState(true);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const startListening = useCallback(async () => {
+    if (!isActive || isProcessing || isSpeaking) return;
+    
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
       const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
       
       mediaRecorderRef.current = mediaRecorder;
@@ -36,11 +41,20 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         await processAudio(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(track => track.stop());
+        }
       };
 
       mediaRecorder.start();
       setIsListening(true);
+      
+      // Auto-stop after 10 seconds to process
+      setTimeout(() => {
+        if (mediaRecorderRef.current?.state === 'recording') {
+          mediaRecorderRef.current.stop();
+        }
+      }, 10000);
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -50,17 +64,12 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         variant: "destructive",
       });
     }
-  }, []);
-
-  const stopListening = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    setIsListening(false);
-  }, []);
+  }, [isActive, isProcessing, isSpeaking]);
 
   const processAudio = async (audioBlob: Blob) => {
+    setIsListening(false);
     setIsProcessing(true);
+    
     try {
       // Convert audio to base64
       const reader = new FileReader();
@@ -81,8 +90,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         const userText = transcribeData.text.trim();
         setTranscript(userText);
 
-        if (!userText) {
+        if (!userText || userText.length < 3) {
           setIsProcessing(false);
+          // Restart listening if no meaningful input
+          setTimeout(() => startListening(), 1000);
           return;
         }
 
@@ -117,7 +128,7 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         
         // Add timeout to prevent hanging on slow TTS
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout for ultra fast response
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
         
         const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-speak', {
           body: { 
@@ -152,13 +163,15 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         description: "Unable to process your voice input. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsProcessing(false);
+      // Restart listening after error
+      setTimeout(() => startListening(), 2000);
     }
   };
 
   const playAudio = async (base64Audio: string) => {
     setIsSpeaking(true);
+    setIsProcessing(false);
     console.log('PlayAudio called with audio length:', base64Audio?.length);
     
     try {
@@ -176,12 +189,16 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         console.log('Audio playback ended');
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
+        // Restart listening after speaking
+        setTimeout(() => startListening(), 1000);
       };
 
       audio.onerror = (e) => {
         console.error('Audio playback error:', e);
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
+        // Restart listening after error
+        setTimeout(() => startListening(), 1000);
       };
 
       console.log('Starting audio playback...');
@@ -190,6 +207,8 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsSpeaking(false);
+      // Restart listening after error
+      setTimeout(() => startListening(), 1000);
     }
   };
 
@@ -198,8 +217,52 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       setIsSpeaking(false);
+      // Restart listening after stopping speech
+      setTimeout(() => startListening(), 500);
     }
   };
+
+  const toggleActive = () => {
+    setIsActive(!isActive);
+    if (!isActive) {
+      // Reactivate and start listening
+      setTimeout(() => startListening(), 500);
+    } else {
+      // Deactivate and stop everything
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+        setIsSpeaking(false);
+      }
+      setIsListening(false);
+      setIsProcessing(false);
+    }
+  };
+
+  // Auto-start listening when component mounts or becomes active
+  useEffect(() => {
+    if (isActive && !isListening && !isSpeaking && !isProcessing) {
+      const timer = setTimeout(() => startListening(), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [isActive, isListening, isSpeaking, isProcessing, startListening]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (mediaRecorderRef.current?.state === 'recording') {
+        mediaRecorderRef.current.stop();
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, []);
 
   return (
     <div className={className}>
@@ -209,7 +272,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
           <div className="relative mx-auto w-24 h-24">
             <div 
               className={`absolute inset-0 rounded-full border-2 transition-all duration-300 ${
-                isListening 
+                !isActive
+                  ? 'border-gray-400 bg-gray-400/10'
+                  : isListening 
                   ? 'border-red-500 bg-red-500/10 animate-pulse' 
                   : isSpeaking
                   ? 'border-blue-500 bg-blue-500/10 animate-pulse'
@@ -219,7 +284,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
               }`}
             />
             <div className="absolute inset-2 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center">
-              {isListening ? (
+              {!isActive ? (
+                <Mic className="w-8 h-8 text-gray-400" />
+              ) : isListening ? (
                 <Mic className="w-8 h-8 text-red-500" />
               ) : isSpeaking ? (
                 <Volume2 className="w-8 h-8 text-blue-500" />
@@ -235,7 +302,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
               Voice Assistant
             </h3>
             <p className="text-sm text-muted-foreground">
-              {isListening 
+              {!isActive
+                ? 'Paused - Click to activate'
+                : isListening 
                 ? 'Listening...' 
                 : isSpeaking 
                 ? 'Speaking...' 
@@ -265,25 +334,14 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
 
           {/* Controls */}
           <div className="flex justify-center gap-4">
-            {!isListening ? (
-              <Button 
-                onClick={startListening} 
-                disabled={isProcessing || isSpeaking}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
-              >
-                <Mic className="w-4 h-4 mr-2" />
-                Start Listening
-              </Button>
-            ) : (
-              <Button 
-                onClick={stopListening}
-                variant="destructive"
-                className="px-8 py-3"
-              >
-                <MicOff className="w-4 h-4 mr-2" />
-                Stop Listening
-              </Button>
-            )}
+            <Button 
+              onClick={toggleActive}
+              variant={isActive ? "destructive" : "default"}
+              className="px-8 py-3"
+            >
+              <Mic className="w-4 h-4 mr-2" />
+              {isActive ? 'Pause' : 'Activate'}
+            </Button>
 
             {isSpeaking && (
               <Button 
