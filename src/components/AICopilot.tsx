@@ -138,6 +138,24 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
     }
   };
 
+  const logVoiceInteraction = (userText: string, assistantResponse: string) => {
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: `🎤 ${userText}`,
+      timestamp: new Date()
+    };
+    
+    const assistantMessage: Message = {
+      id: (Date.now() + 1).toString(),
+      role: 'assistant',
+      content: `🔊 ${assistantResponse}`,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, userMessage, assistantMessage]);
+  };
+
   return (
     <div className={`w-full max-w-4xl mx-auto ${className || ''}`}>
       <Card className="h-[600px] flex flex-col bg-background border-primary/20">
@@ -256,7 +274,7 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
             </TabsContent>
 
             <TabsContent value="voice" className="flex-1 p-4">
-              <VoiceAssistant className="h-full" />
+              <VoiceAssistant className="h-full" onVoiceInteraction={logVoiceInteraction} />
             </TabsContent>
           </Tabs>
         </CardContent>

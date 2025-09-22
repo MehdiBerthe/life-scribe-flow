@@ -7,9 +7,10 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceAssistantProps {
   className?: string;
+  onVoiceInteraction?: (userText: string, assistantResponse: string) => void;
 }
 
-export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => {
+export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoiceInteraction }) => {
   const { toast } = useToast();
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
@@ -120,6 +121,9 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
 
         const aiResponse = aiData.message;
         setResponse(aiResponse);
+
+        // Log interaction to main chat
+        onVoiceInteraction?.(userText, aiResponse);
 
         console.log('AI Response received:', aiResponse);
 
@@ -314,23 +318,6 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
             </p>
           </div>
 
-          {/* Transcript and Response */}
-          {(transcript || response) && (
-            <div className="space-y-4 text-left">
-              {transcript && (
-                <div className="p-3 bg-muted/50 rounded-lg border">
-                  <p className="text-xs text-muted-foreground mb-1">You said:</p>
-                  <p className="text-sm">{transcript}</p>
-                </div>
-              )}
-              {response && (
-                <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                  <p className="text-xs text-muted-foreground mb-1">Assistant:</p>
-                  <p className="text-sm">{response}</p>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Controls */}
           <div className="flex justify-center gap-4">
