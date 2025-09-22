@@ -21,14 +21,10 @@ export interface Message {
 }
 
 interface AICopilotProps {
-  isOpen?: boolean;
-  onClose?: () => void;
+  className?: string;
 }
 
-export const AICopilot: React.FC<AICopilotProps> = ({ 
-  isOpen = true, 
-  onClose 
-}) => {
+export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([{
     id: '1',
@@ -142,154 +138,147 @@ export const AICopilot: React.FC<AICopilotProps> = ({
     }
   };
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl h-[85vh] flex flex-col bg-background/95 backdrop-blur-sm border-primary/20">
+    <div className={`w-full max-w-4xl mx-auto space-y-6 ${className || ''}`}>
+      {/* Text Chat Interface */}
+      <Card className="h-[600px] flex flex-col bg-background border-primary/20">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 border-b border-primary/10">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
             <CardTitle className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              AI Assistant - Lexa
+              Chat with Lexa
             </CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowVoiceMode(!showVoiceMode)}
-              className="text-primary hover:bg-primary/10"
-            >
-              <Mic className="h-4 w-4" />
-              Voice
-            </Button>
-            {onClose && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowVoiceMode(!showVoiceMode)}
+            className="text-primary hover:bg-primary/10"
+          >
+            <Mic className="h-4 w-4" />
+            Voice Mode
+          </Button>
+        </CardHeader>
+
+        <CardContent className="flex-1 flex flex-col p-0">
+          {/* Messages Area */}
+          <ScrollArea className="flex-1 px-4">
+            <div className="space-y-6 py-4">
+              {messages.map(message => (
+                <div 
+                  key={message.id} 
+                  className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  {message.role === 'assistant' && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-white" />
+                    </div>
+                  )}
+                  
+                  <div className={`max-w-[85%] ${message.role === 'user' ? 'order-first' : ''}`}>
+                    <div className={`p-4 rounded-2xl ${
+                      message.role === 'user' 
+                        ? 'bg-primary text-primary-foreground ml-auto' 
+                        : 'bg-muted'
+                    }`}>
+                      <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        {message.content}
+                      </p>
+                      
+                      {message.function_call && (
+                        <div className="mt-3 p-3 bg-background/20 rounded-lg text-xs">
+                          <div className="font-medium opacity-80">
+                            Action: {message.function_call.name}
+                          </div>
+                          {message.function_call.result && (
+                            <div className="opacity-60 mt-1">
+                              Result: {JSON.stringify(message.function_call.result, null, 2)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {message.role === 'user' && (
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                      <User className="h-4 w-4" />
+                    </div>
+                  )}
+                </div>
+              ))}
+              
+              {isLoading && (
+                <div className="flex gap-4 justify-start">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-white" />
+                  </div>
+                  <div className="p-4 rounded-2xl bg-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                </div>
+              )}
+            </div>
+            <div ref={messagesEndRef} />
+          </ScrollArea>
+
+          {/* Input Area */}
+          <div className="border-t border-primary/10 bg-background">
+            <div className="p-4">
+              <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
+                <Input 
+                  value={input} 
+                  onChange={e => setInput(e.target.value)} 
+                  onKeyPress={handleKeyPress} 
+                  placeholder="Message Lexa..." 
+                  disabled={isLoading} 
+                  className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
+                />
+                
+                <Button 
+                  onClick={() => sendMessage()} 
+                  disabled={isLoading || !input.trim()} 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Voice Assistant Section */}
+      {showVoiceMode && (
+        <Card className="bg-background border-primary/20">
+          <CardHeader className="pb-4 border-b border-primary/10">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                <CardTitle className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                  Voice Assistant
+                </CardTitle>
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={onClose}
+                onClick={() => setShowVoiceMode(false)}
                 className="text-muted-foreground hover:text-foreground"
               >
                 <X className="h-4 w-4" />
               </Button>
-            )}
-          </div>
-        </CardHeader>
-
-        <CardContent className="flex-1 flex flex-col p-0">
-          {showVoiceMode ? (
-            <div className="flex-1 flex items-center justify-center p-8">
-              <div className="w-full max-w-md">
-                <VoiceAssistant className="w-full" />
-                <div className="mt-6 text-center">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => setShowVoiceMode(false)}
-                    className="text-sm"
-                  >
-                    Switch to Text Chat
-                  </Button>
-                </div>
-              </div>
             </div>
-          ) : (
-            <>
-              {/* Messages Area */}
-              <ScrollArea className="flex-1 px-4">
-                <div className="space-y-6 py-4 max-w-3xl mx-auto">
-                  {messages.map(message => (
-                    <div 
-                      key={message.id} 
-                      className={`flex gap-4 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                    >
-                      {message.role === 'assistant' && (
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm flex items-center justify-center">
-                          <Sparkles className="h-4 w-4 text-white" />
-                        </div>
-                      )}
-                      
-                      <div className={`max-w-[85%] ${message.role === 'user' ? 'order-first' : ''}`}>
-                        <div className={`p-4 rounded-2xl ${
-                          message.role === 'user' 
-                            ? 'bg-primary text-primary-foreground ml-auto' 
-                            : 'bg-muted'
-                        }`}>
-                          <p className="text-sm leading-relaxed whitespace-pre-wrap">
-                            {message.content}
-                          </p>
-                          
-                          {message.function_call && (
-                            <div className="mt-3 p-3 bg-background/20 rounded-lg text-xs">
-                              <div className="font-medium opacity-80">
-                                Action: {message.function_call.name}
-                              </div>
-                              {message.function_call.result && (
-                                <div className="opacity-60 mt-1">
-                                  Result: {JSON.stringify(message.function_call.result, null, 2)}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {message.role === 'user' && (
-                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                          <User className="h-4 w-4" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  
-                  {isLoading && (
-                    <div className="flex gap-4 justify-start">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-primary to-primary/80 shadow-sm flex items-center justify-center">
-                        <Sparkles className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="p-4 rounded-2xl bg-muted">
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-                <div ref={messagesEndRef} />
-              </ScrollArea>
-
-              {/* Input Area */}
-              <div className="border-t border-primary/10 bg-background">
-                <div className="max-w-3xl mx-auto p-4">
-                  <div className="relative flex items-center gap-2 bg-muted rounded-full px-4 py-3">
-                    <Input 
-                      value={input} 
-                      onChange={e => setInput(e.target.value)} 
-                      onKeyPress={handleKeyPress} 
-                      placeholder="Message Lexa..." 
-                      disabled={isLoading} 
-                      className="flex-1 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground" 
-                    />
-                    
-                    <Button 
-                      onClick={() => sendMessage()} 
-                      disabled={isLoading || !input.trim()} 
-                      size="icon" 
-                      className="h-8 w-8 rounded-full"
-                    >
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent className="p-6">
+            <VoiceAssistant className="w-full" />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };
