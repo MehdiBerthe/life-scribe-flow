@@ -93,8 +93,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoi
 
         if (!userText || userText.length < 3) {
           setIsProcessing(false);
-          // Restart listening if no meaningful input
-          setTimeout(() => startListening(), 1000);
+          // Only restart listening if still active
+          if (isActive) {
+            setTimeout(() => startListening(), 1000);
+          }
           return;
         }
 
@@ -168,8 +170,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoi
         variant: "destructive",
       });
       setIsProcessing(false);
-      // Restart listening after error
-      setTimeout(() => startListening(), 2000);
+      // Only restart listening if still active
+      if (isActive) {
+        setTimeout(() => startListening(), 2000);
+      }
     }
   };
 
@@ -193,16 +197,20 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoi
         console.log('Audio playback ended');
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
-        // Restart listening after speaking
-        setTimeout(() => startListening(), 1000);
+        // Only restart listening if still active
+        if (isActive) {
+          setTimeout(() => startListening(), 1000);
+        }
       };
 
       audio.onerror = (e) => {
         console.error('Audio playback error:', e);
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
-        // Restart listening after error
-        setTimeout(() => startListening(), 1000);
+        // Only restart listening if still active
+        if (isActive) {
+          setTimeout(() => startListening(), 1000);
+        }
       };
 
       console.log('Starting audio playback...');
@@ -211,8 +219,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoi
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsSpeaking(false);
-      // Restart listening after error
-      setTimeout(() => startListening(), 1000);
+      // Only restart listening if still active
+      if (isActive) {
+        setTimeout(() => startListening(), 1000);
+      }
     }
   };
 
@@ -221,8 +231,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoi
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       setIsSpeaking(false);
-      // Restart listening after stopping speech
-      setTimeout(() => startListening(), 500);
+      // Only restart listening if still active
+      if (isActive) {
+        setTimeout(() => startListening(), 500);
+      }
     }
   };
 
