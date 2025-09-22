@@ -106,7 +106,10 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
         const aiResponse = aiData.message;
         setResponse(aiResponse);
 
+        console.log('AI Response received:', aiResponse);
+
         // Convert response to speech with ElevenLabs
+        console.log('Calling voice-speak function...');
         const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-speak', {
           body: { 
             text: aiResponse,
@@ -114,10 +117,19 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
           }
         });
 
+        console.log('Voice-speak response:', { speechData, speechError });
+
         if (speechError) {
-          throw new Error('Text-to-speech failed');
+          console.error('Speech error:', speechError);
+          throw new Error('Text-to-speech failed: ' + speechError.message);
         }
 
+        if (!speechData || !speechData.audioContent) {
+          console.error('No audio content received');
+          throw new Error('No audio content received from speech service');
+        }
+
+        console.log('Playing audio...');
         // Play audio response
         await playAudio(speechData.audioContent);
       };
@@ -136,21 +148,34 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className }) => 
 
   const playAudio = async (base64Audio: string) => {
     setIsSpeaking(true);
+    console.log('PlayAudio called with audio length:', base64Audio?.length);
+    
     try {
       const audioBlob = new Blob([
         Uint8Array.from(atob(base64Audio), c => c.charCodeAt(0))
       ], { type: 'audio/mpeg' });
+      
+      console.log('Audio blob created, size:', audioBlob.size);
       
       const audioUrl = URL.createObjectURL(audioBlob);
       const audio = new Audio(audioUrl);
       audioRef.current = audio;
 
       audio.onended = () => {
+        console.log('Audio playback ended');
         setIsSpeaking(false);
         URL.revokeObjectURL(audioUrl);
       };
 
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setIsSpeaking(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      console.log('Starting audio playback...');
       await audio.play();
+      console.log('Audio play() called successfully');
     } catch (error) {
       console.error('Error playing audio:', error);
       setIsSpeaking(false);
