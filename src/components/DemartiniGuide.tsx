@@ -120,10 +120,10 @@ export function DemartiniGuide() {
   };
 
   const getFirstColumnForSide = (side: 'A' | 'B' | 'C'): number => {
-    if (side === 'A') return 1;
-    if (side === 'B') return 8;
-    if (side === 'C') return 15;
-    return 1;
+    if (side === 'A') return 2;
+    if (side === 'B') return 9;
+    if (side === 'C') return 16;
+    return 2;
   };
 
   const saveSession = async (session: DemartiniSession) => {
