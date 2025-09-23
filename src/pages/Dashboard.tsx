@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { NotebookPage } from '@/components/NotebookPage';
-import AICopilot from '@/components/AICopilot';
 import { useVectorization } from '@/hooks/useVectorization';
 import { storage, formatDate, isToday } from '@/lib/storage';
 import { DailyGoal, JournalEntry, Transaction } from '@/types';
@@ -18,7 +16,6 @@ import {
   Users,
   BarChart3,
   CheckCircle2,
-  Brain,
   Database,
   RefreshCw
 } from 'lucide-react';
@@ -54,19 +51,6 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 md:space-y-8 mobile-container">
-
-      <Tabs defaultValue="copilot" className="w-full">
-        <TabsList className="grid w-full grid-cols-2 h-auto">
-          <TabsTrigger value="copilot" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
-            <Brain size={14} className="sm:w-4 sm:h-4" />
-            <span className="hidden sm:inline">AI Co-Pilot</span>
-            <span className="sm:hidden">AI</span>
-          </TabsTrigger>
-          <TabsTrigger value="overview" className="text-xs sm:text-sm py-2">Overview</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-6 md:space-y-8 mt-4 md:mt-6">
-
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-3 md:gap-4">
         <Card className="mobile-card">
@@ -179,13 +163,6 @@ export default function Dashboard() {
           </div>
         </CardContent>
       </Card>
-        </TabsContent>
-        
-        <TabsContent value="copilot" className="mt-6">
-          <AICopilot />
-        </TabsContent>
-        
-      </Tabs>
     </div>
   );
 }
