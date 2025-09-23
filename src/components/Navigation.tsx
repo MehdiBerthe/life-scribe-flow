@@ -22,8 +22,8 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'AI Assistant', href: '/ai-copilot', icon: Bot },
-  { name: 'Planning', href: '/planning', icon: Target },
   { name: 'Demartini Method', href: '/demartini', icon: Brain },
+  { name: 'Planning', href: '/planning', icon: Target },
   { name: 'Journal', href: '/journal', icon: PenTool },
   { name: 'Reading', href: '/reading', icon: BookOpen },
   // { name: 'Finance', href: '/finance', icon: DollarSign },
