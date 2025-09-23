@@ -26,7 +26,7 @@ const navigation = [
   { name: 'Demartini Method', href: '/demartini', icon: Brain },
   { name: 'Journal', href: '/journal', icon: PenTool },
   { name: 'Reading', href: '/reading', icon: BookOpen },
-  { name: 'Finance', href: '/finance', icon: DollarSign },
+  // { name: 'Finance', href: '/finance', icon: DollarSign },
   { name: 'Physical', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
