@@ -56,7 +56,7 @@ export const DEMARTINI_COLUMNS: ColumnConfig[] = [
   { number: 7, title: "Benefits If Opposite", question: "What would have been the BENEFITS to you if they had shown the OPPOSITE traits instead?", requires_who_where_when: false, side: 'A' },
   
   // Side B - Despised Traits  
-  { number: 8, title: "Despised Traits", question: "List 3 specific traits, actions, or inactions you dislike most in this person. Add where/when.", target_count: 3, requires_who_where_when: true, side: 'B' },
+  { number: 8, title: "Despised Trait", question: "Choose 1 specific trait, action, or inaction you dislike most in this person. Write it in short form (3–5 words). Add where and when you observed it.", target_count: 1, requires_who_where_when: true, side: 'B' },
   { number: 9, title: "Times You Showed Same Traits", question: "List times YOU displayed the same traits. For each, add who/where/when.", requires_who_where_when: true, side: 'B' },
   { number: 10, title: "Benefits to You", question: "Think of moments they showed those disliked traits. What were the BENEFITS or upsides to YOU? Provide 20–50.", target_count: 20, requires_who_where_when: false, side: 'B' },
   { number: 11, title: "Benefits to Others", question: "What were the BENEFITS to others when you displayed those same traits? Provide 20–50.", target_count: 20, requires_who_where_when: false, side: 'B' },
