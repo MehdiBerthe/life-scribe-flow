@@ -3,10 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface SideSelectorProps {
-  onSideSelected: (side: 'A' | 'B' | 'C', sideCMode?: 'self' | 'relief' | 'grief') => void;
+  onSideSelected: (side: 'A' | 'B' | 'C', sideCMode?: 'self' | 'relief' | 'grief', traitOrEvent?: string) => void;
   onCancel: () => void;
 }
 
@@ -15,17 +17,26 @@ export function DemartiniSideSelector({ onSideSelected, onCancel }: SideSelector
   const [emotionalCharge, setEmotionalCharge] = useState('');
   const [situationType, setSituationType] = useState('');
   const [sideCMode, setSideCMode] = useState<'self' | 'relief' | 'grief'>('self');
+  const [traitOrEvent, setTraitOrEvent] = useState('');
 
   const handleNext = () => {
     if (step === 1 && emotionalCharge) {
-      if (emotionalCharge === 'admiration') {
-        onSideSelected('A');
-      } else if (emotionalCharge === 'resentment') {
-        onSideSelected('B');
+      if (emotionalCharge === 'admiration' || emotionalCharge === 'resentment') {
+        setStep(2);
       } else if (emotionalCharge === 'loss-gain') {
         setStep(2);
       }
-    } else if (step === 2 && situationType) {
+    } else if (step === 2) {
+      if (emotionalCharge === 'loss-gain' && situationType) {
+        setStep(3);
+      } else if ((emotionalCharge === 'admiration' || emotionalCharge === 'resentment') && traitOrEvent.trim()) {
+        if (emotionalCharge === 'admiration') {
+          onSideSelected('A', undefined, traitOrEvent.trim());
+        } else {
+          onSideSelected('B', undefined, traitOrEvent.trim());
+        }
+      }
+    } else if (step === 3 && situationType && traitOrEvent.trim()) {
       let mode: 'self' | 'relief' | 'grief' = 'self';
       if (situationType === 'loss') {
         mode = 'grief';
@@ -34,11 +45,19 @@ export function DemartiniSideSelector({ onSideSelected, onCancel }: SideSelector
       } else if (situationType === 'self-change') {
         mode = 'self';
       }
-      onSideSelected('C', mode);
+      onSideSelected('C', mode, traitOrEvent.trim());
     }
   };
 
-  const canProceed = step === 1 ? !!emotionalCharge : !!situationType;
+  const canProceed = () => {
+    if (step === 1) return !!emotionalCharge;
+    if (step === 2) {
+      if (emotionalCharge === 'loss-gain') return !!situationType;
+      return !!traitOrEvent.trim();
+    }
+    if (step === 3) return !!traitOrEvent.trim();
+    return false;
+  };
 
   return (
     <Card className="max-w-2xl mx-auto">
@@ -99,7 +118,7 @@ export function DemartiniSideSelector({ onSideSelected, onCancel }: SideSelector
           </>
         )}
 
-        {step === 2 && (
+        {step === 2 && emotionalCharge === 'loss-gain' && (
           <>
             <div className="flex items-center gap-2 mb-4">
               <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
@@ -149,13 +168,66 @@ export function DemartiniSideSelector({ onSideSelected, onCancel }: SideSelector
           </>
         )}
 
+        {step === 2 && (emotionalCharge === 'admiration' || emotionalCharge === 'resentment') && (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <Button variant="ghost" size="sm" onClick={() => setStep(1)}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h3 className="font-medium">
+                {emotionalCharge === 'admiration' ? 'What trait do you admire?' : 'What trait do you despise?'}
+              </h3>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="trait">
+                {emotionalCharge === 'admiration' 
+                  ? 'Enter the specific trait you admire (e.g., "confidence", "intelligence", "kindness")' 
+                  : 'Enter the specific trait you despise (e.g., "arrogance", "dishonesty", "selfishness")'
+                }
+              </Label>
+              <Input
+                id="trait"
+                value={traitOrEvent}
+                onChange={(e) => setTraitOrEvent(e.target.value)}
+                placeholder={emotionalCharge === 'admiration' ? 'e.g., confidence' : 'e.g., arrogance'}
+              />
+            </div>
+          </>
+        )}
+
+        {step === 3 && emotionalCharge === 'loss-gain' && (
+          <>
+            <div className="flex items-center gap-2 mb-4">
+              <Button variant="ghost" size="sm" onClick={() => setStep(2)}>
+                <ArrowLeft className="h-4 w-4" />
+              </Button>
+              <h3 className="font-medium">Describe the event</h3>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event">
+                Briefly describe what happened
+              </Label>
+              <Textarea
+                id="event"
+                value={traitOrEvent}
+                onChange={(e) => setTraitOrEvent(e.target.value)}
+                placeholder="e.g., My father passed away last month..."
+                rows={3}
+              />
+            </div>
+          </>
+        )}
+
         <div className="flex justify-between">
           <Button variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button onClick={handleNext} disabled={!canProceed}>
-            {step === 1 && emotionalCharge === 'loss-gain' ? 'Next' : 'Start Session'}
-            {step === 1 && emotionalCharge === 'loss-gain' && <ArrowRight className="h-4 w-4 ml-2" />}
+          <Button onClick={handleNext} disabled={!canProceed()}>
+            {(step === 1 && emotionalCharge === 'loss-gain') || (step === 2 && emotionalCharge === 'loss-gain') ? (
+              <>Next <ArrowRight className="h-4 w-4 ml-2" /></>
+            ) : (
+              'Start Session'
+            )}
           </Button>
         </div>
       </CardContent>

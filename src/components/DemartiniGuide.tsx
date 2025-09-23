@@ -44,6 +44,7 @@ export function DemartiniGuide() {
         title: doc.title,
         selected_side: (doc.data as any)?.selected_side || 'A',
         side_c_mode: doc.side_c_mode as 'self' | 'relief' | 'grief',
+        chosen_trait: (doc.data as any)?.chosen_trait,
         columns: (doc.data as any)?.columns || {},
         progress: (doc.progress as any) || { current_column: 1, completed_columns: [] },
         created_at: doc.created_at,
@@ -58,7 +59,7 @@ export function DemartiniGuide() {
     }
   };
 
-  const handleSideSelection = async (selectedSide: 'A' | 'B' | 'C', sideCMode?: 'self' | 'relief' | 'grief') => {
+  const handleSideSelection = async (selectedSide: 'A' | 'B' | 'C', sideCMode?: 'self' | 'relief' | 'grief', traitOrEvent?: string) => {
     if (!newSessionTitle.trim()) {
       toast.error('Please enter a session title');
       return;
@@ -70,6 +71,7 @@ export function DemartiniGuide() {
         title: newSessionTitle.trim(),
         selected_side: selectedSide,
         side_c_mode: sideCMode,
+        chosen_trait: traitOrEvent,
         columns: {},
         progress: { current_column: getFirstColumnForSide(selectedSide), completed_columns: [] },
       };
@@ -81,7 +83,8 @@ export function DemartiniGuide() {
           side_c_mode: newSession.side_c_mode,
           data: { 
             columns: newSession.columns,
-            selected_side: newSession.selected_side 
+            selected_side: newSession.selected_side,
+            chosen_trait: newSession.chosen_trait
           } as any,
           progress: newSession.progress as any,
           user_id: '00000000-0000-0000-0000-000000000001',
@@ -96,6 +99,7 @@ export function DemartiniGuide() {
         title: data.title,
         selected_side: selectedSide,
         side_c_mode: data.side_c_mode as 'self' | 'relief' | 'grief',
+        chosen_trait: traitOrEvent,
         columns: (data.data as any)?.columns || {},
         progress: (data.progress as any) || { current_column: getFirstColumnForSide(selectedSide), completed_columns: [] },
         created_at: data.created_at,
@@ -129,7 +133,8 @@ export function DemartiniGuide() {
         .update({
           data: { 
             columns: session.columns,
-            selected_side: session.selected_side 
+            selected_side: session.selected_side,
+            chosen_trait: session.chosen_trait
           } as any,
           progress: session.progress as any,
         })
