@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { AlertTriangle, Save, Download } from 'lucide-react';
+import { AlertTriangle, Save, Download, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -169,6 +169,29 @@ export function DemartiniGuide() {
     return (session.progress.completed_columns.length / allColumns.length) * 100;
   };
 
+  const deleteSession = async (session: DemartiniSession) => {
+    if (!confirm(`Are you sure you want to delete the session "${session.title}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase
+        .from('demartini_docs')
+        .delete()
+        .eq('id', session.id);
+
+      if (error) throw error;
+      
+      setSessions(prev => prev.filter(s => s.id !== session.id));
+      toast.success('Session deleted');
+    } catch (error: any) {
+      toast.error('Failed to delete session: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const exportSession = (session: DemartiniSession) => {
     const exportData = {
       title: session.title,
@@ -265,6 +288,14 @@ export function DemartiniGuide() {
                         onClick={() => exportSession(session)}
                       >
                         <Download className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteSession(session)}
+                        disabled={loading}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                       <Button
                         size="sm"
