@@ -175,6 +175,7 @@ export type Database = {
           data: Json
           id: string
           progress: Json
+          selected_side: string | null
           side_c_mode: string | null
           title: string
           updated_at: string
@@ -185,6 +186,7 @@ export type Database = {
           data?: Json
           id?: string
           progress?: Json
+          selected_side?: string | null
           side_c_mode?: string | null
           title: string
           updated_at?: string
@@ -195,6 +197,7 @@ export type Database = {
           data?: Json
           id?: string
           progress?: Json
+          selected_side?: string | null
           side_c_mode?: string | null
           title?: string
           updated_at?: string
