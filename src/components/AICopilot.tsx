@@ -157,31 +157,32 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
   };
 
   return (
-    <div className={`w-full max-w-4xl mx-auto ${className || ''}`}>
-      <Card className="h-[600px] flex flex-col bg-background border-primary/20">
-        <CardHeader className="pb-4 border-b border-primary/10">
-          <CardTitle className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-primary" />
-            Chat with Lexa
-          </CardTitle>
-        </CardHeader>
+    <div className={`w-full max-w-4xl mx-auto space-y-4 ${className || ''}`}>
+      {/* Toggle Controls Outside */}
+      <Tabs defaultValue="chat" className="w-full">
+        <div className="flex justify-center">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="chat" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Text Chat
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-2">
+              <Mic className="h-4 w-4" />
+              Voice Assistant
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
-        <CardContent className="flex-1 p-0">
-          <Tabs defaultValue="chat" className="h-full flex flex-col">
-            <div className="px-4 pt-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="chat" className="flex items-center gap-2">
-                  <MessageSquare className="h-4 w-4" />
-                  Text Chat
-                </TabsTrigger>
-                <TabsTrigger value="voice" className="flex items-center gap-2">
-                  <Mic className="h-4 w-4" />
-                  Voice Assistant
-                </TabsTrigger>
-              </TabsList>
-            </div>
+        <TabsContent value="chat">
+          <Card className="h-[600px] flex flex-col bg-background border-primary/20">
+            <CardHeader className="pb-4 border-b border-primary/10">
+              <CardTitle className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-primary" />
+                Chat with Lexa
+              </CardTitle>
+            </CardHeader>
 
-            <TabsContent value="chat" className="flex-1 flex flex-col mt-0">
+            <CardContent className="flex-1 p-0 flex flex-col">
               {/* Messages Area */}
               <ScrollArea className="flex-1 px-4">
                 <div className="space-y-6 py-4">
@@ -271,14 +272,24 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
                   </div>
                 </div>
               </div>
-            </TabsContent>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-            <TabsContent value="voice" className="flex-1 p-4">
+        <TabsContent value="voice">
+          <Card className="h-[600px] flex flex-col bg-background border-primary/20">
+            <CardHeader className="pb-4 border-b border-primary/10">
+              <CardTitle className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent flex items-center gap-2">
+                <Mic className="h-5 w-5 text-primary" />
+                Voice Assistant
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex-1 p-4">
               <VoiceAssistant className="h-full" onVoiceInteraction={logVoiceInteraction} />
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
