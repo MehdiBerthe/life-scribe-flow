@@ -79,6 +79,7 @@ export function DemartiniGuide() {
           side_c_mode: newSession.side_c_mode,
           data: { columns: newSession.columns } as any,
           progress: newSession.progress as any,
+          user_id: '00000000-0000-0000-0000-000000000001',
         })
         .select()
         .single();
