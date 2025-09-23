@@ -1,7 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Mic, Volume2, VolumeX } from 'lucide-react';
+import { Mic, X } from 'lucide-react';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -281,80 +280,47 @@ export const VoiceAssistant: React.FC<VoiceAssistantProps> = ({ className, onVoi
   }, []);
 
   return (
-    <div className={className}>
-      <Card className="p-8 bg-gradient-to-br from-background via-background/95 to-primary/5 border-primary/20 backdrop-blur-sm">
-        <div className="text-center space-y-6">
-          {/* Status Indicator */}
-          <div className="relative mx-auto w-24 h-24">
-            <div 
-              className={`absolute inset-0 rounded-full border-2 transition-all duration-300 ${
-                !isActive
-                  ? 'border-gray-400 bg-gray-400/10'
-                  : isListening 
-                  ? 'border-red-500 bg-red-500/10 animate-pulse' 
-                  : isSpeaking
-                  ? 'border-blue-500 bg-blue-500/10 animate-pulse'
-                  : isProcessing
-                  ? 'border-yellow-500 bg-yellow-500/10 animate-spin'
-                  : 'border-primary/30 bg-primary/5'
-              }`}
-            />
-            <div className="absolute inset-2 rounded-full bg-background/50 backdrop-blur-sm flex items-center justify-center">
-              {!isActive ? (
-                <Mic className="w-8 h-8 text-gray-400" />
-              ) : isListening ? (
-                <Mic className="w-8 h-8 text-red-500" />
-              ) : isSpeaking ? (
-                <Volume2 className="w-8 h-8 text-blue-500" />
-              ) : (
-                <Mic className="w-8 h-8 text-muted-foreground" />
-              )}
-            </div>
-          </div>
+    <div className={`flex flex-col items-center justify-center h-full bg-gradient-to-b from-gray-50 to-white ${className}`}>
+      {/* Large Central Circle */}
+      <div className="relative mb-16">
+        <div 
+          className={`w-64 h-64 rounded-full bg-gradient-to-b from-blue-200 via-blue-400 to-blue-600 shadow-2xl transition-all duration-300 ${
+            isSpeaking 
+              ? 'animate-pulse scale-105 shadow-blue-400/50' 
+              : isListening
+              ? 'animate-pulse shadow-blue-300/30'
+              : isProcessing
+              ? 'animate-spin shadow-yellow-300/30'
+              : 'shadow-blue-200/30'
+          } ${isSpeaking ? 'animate-[pulse_0.5s_ease-in-out_infinite]' : ''}`}
+        />
+        
+        {/* Vibration effect when speaking */}
+        {isSpeaking && (
+          <div className="absolute inset-0 w-64 h-64 rounded-full bg-gradient-to-b from-blue-200 via-blue-400 to-blue-600 animate-[vibrate_0.1s_linear_infinite] opacity-50" />
+        )}
+      </div>
 
-          {/* Status Text */}
-          <div className="space-y-2">
-            <h3 className="text-xl font-semibold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
-              Voice Assistant
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {!isActive
-                ? 'Paused - Click to activate'
-                : isListening 
-                ? 'Listening...' 
-                : isSpeaking 
-                ? 'Speaking...' 
-                : isProcessing 
-                ? 'Processing...' 
-                : 'Ready to help'}
-            </p>
-          </div>
-
-
-          {/* Controls */}
-          <div className="flex justify-center gap-4">
-            <Button 
-              onClick={toggleActive}
-              variant={isActive ? "destructive" : "default"}
-              className="px-8 py-3"
-            >
-              <Mic className="w-4 h-4 mr-2" />
-              {isActive ? 'Pause' : 'Activate'}
-            </Button>
-
-            {isSpeaking && (
-              <Button 
-                onClick={stopSpeaking}
-                variant="outline"
-                className="px-6 py-3"
-              >
-                <VolumeX className="w-4 h-4 mr-2" />
-                Stop Speaking
-              </Button>
-            )}
-          </div>
-        </div>
-      </Card>
+      {/* Control Buttons */}
+      <div className="flex gap-8">
+        <Button
+          onClick={toggleActive}
+          size="lg"
+          variant={isActive ? "default" : "outline"}
+          className="w-16 h-16 rounded-full bg-white shadow-lg hover:shadow-xl transition-all border-2 border-gray-200"
+        >
+          <Mic className="w-6 h-6 text-gray-700" />
+        </Button>
+        
+        <Button
+          onClick={() => setIsActive(false)}
+          size="lg"
+          variant="outline"
+          className="w-16 h-16 rounded-full bg-white shadow-lg hover:shadow-xl transition-all border-2 border-gray-200"
+        >
+          <X className="w-6 h-6 text-gray-700" />
+        </Button>
+      </div>
     </div>
   );
 };
