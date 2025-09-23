@@ -19,8 +19,8 @@ export default function Physical() {
   
   const [formData, setFormData] = useState<Partial<PhysicalLog>>({
     sleep: { hours: undefined, quality: 3 },
-    workout: { type: '', duration: undefined, intensity: 3 },
-    weight: { value: 0, time: '' },
+    workout: { type: '', duration: undefined, intensity: 3, exercises: [] },
+    weight: { value: 0 },
     energy: { level: 3 },
     caffeine: { cups: undefined },
     meals: [],
@@ -41,8 +41,8 @@ export default function Physical() {
     if (logToEdit) {
       setFormData({
         sleep: logToEdit.sleep || { quality: 3 },
-        workout: logToEdit.workout || { intensity: 3 },
-        weight: logToEdit.weight || { value: 0, time: '' },
+        workout: logToEdit.workout || { intensity: 3, exercises: [] },
+        weight: logToEdit.weight || { value: 0 },
         energy: logToEdit.energy || { level: 3 },
         caffeine: logToEdit.caffeine || {},
         meals: logToEdit.meals || [],
@@ -54,8 +54,8 @@ export default function Physical() {
       // Create new log for today
       setFormData({
         sleep: { quality: 3 },
-        workout: { intensity: 3 },
-        weight: { value: 0, time: new Date().toTimeString().slice(0, 5) },
+        workout: { intensity: 3, exercises: [] },
+        weight: { value: 0 },
         energy: { level: 3 },
         caffeine: {},
         meals: [],
@@ -65,6 +65,98 @@ export default function Physical() {
       setEditingLogId(null);
     }
     setShowCreateForm(true);
+  };
+
+  const addExercise = () => {
+    const newExercise = {
+      id: generateId(),
+      name: '',
+      sets: []
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      workout: { 
+        ...prev.workout, 
+        exercises: [...(prev.workout?.exercises || []), newExercise] 
+      }
+    }));
+  };
+
+  const updateExercise = (exerciseId: string, updates: { name?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId ? { ...exercise, ...updates } : exercise
+        ) || []
+      }
+    }));
+  };
+
+  const removeExercise = (exerciseId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.filter(exercise => exercise.id !== exerciseId) || []
+      }
+    }));
+  };
+
+  const addSet = (exerciseId: string) => {
+    const newSet = {
+      id: generateId(),
+      reps: 0,
+      weight: undefined,
+      notes: ''
+    };
+    
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId 
+            ? { ...exercise, sets: [...exercise.sets, newSet] }
+            : exercise
+        ) || []
+      }
+    }));
+  };
+
+  const updateSet = (exerciseId: string, setId: string, updates: { reps?: number; weight?: number; notes?: string }) => {
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId 
+            ? {
+                ...exercise,
+                sets: exercise.sets.map(set => 
+                  set.id === setId ? { ...set, ...updates } : set
+                )
+              }
+            : exercise
+        ) || []
+      }
+    }));
+  };
+
+  const removeSet = (exerciseId: string, setId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId 
+            ? { ...exercise, sets: exercise.sets.filter(set => set.id !== setId) }
+            : exercise
+        ) || []
+      }
+    }));
   };
 
   const addMeal = () => {
@@ -165,8 +257,8 @@ export default function Physical() {
     setEditingLogId(null);
     setFormData({
       sleep: { quality: 3 },
-      workout: { intensity: 3 },
-      weight: { value: 0, time: '' },
+      workout: { intensity: 3, exercises: [] },
+      weight: { value: 0 },
       energy: { level: 3 },
       caffeine: {},
       meals: [],
@@ -351,30 +443,33 @@ export default function Physical() {
                       Workout
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div>
-                      <label className="text-sm font-medium">Workout Type</label>
-                      <Input
-                        value={formData.workout?.type || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          workout: { ...prev.workout, type: e.target.value }
-                        }))}
-                        placeholder="e.g., Running, Weight lifting, Yoga"
-                      />
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium">Workout Type</label>
+                        <Input
+                          value={formData.workout?.type || ''}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            workout: { ...prev.workout, type: e.target.value }
+                          }))}
+                          placeholder="e.g., Upper Body, Legs, Cardio"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">Duration (minutes)</label>
+                        <Input
+                          type="number"
+                          value={formData.workout?.duration || ''}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            workout: { ...prev.workout, duration: parseInt(e.target.value) || undefined }
+                          }))}
+                          placeholder="e.g., 45"
+                        />
+                      </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">Duration (minutes)</label>
-                      <Input
-                        type="number"
-                        value={formData.workout?.duration || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          workout: { ...prev.workout, duration: parseInt(e.target.value) || undefined }
-                        }))}
-                        placeholder="e.g., 45"
-                      />
-                    </div>
+                    
                     <div>
                       <label className="text-sm font-medium mb-2 block">
                         Intensity: {getIntensityLabel(formData.workout?.intensity || 3)}
@@ -391,6 +486,82 @@ export default function Physical() {
                         className="w-full"
                       />
                     </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Exercises</label>
+                        <Button onClick={addExercise} size="sm" variant="outline" className="flex items-center gap-1">
+                          <Plus size={14} />
+                          Add Exercise
+                        </Button>
+                      </div>
+                      
+                      {formData.workout?.exercises?.map((exercise, exerciseIndex) => (
+                        <Card key={exercise.id} className="border-l-4 border-l-orange-500/50">
+                          <CardContent className="pt-4 space-y-3">
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={exercise.name}
+                                onChange={(e) => updateExercise(exercise.id, { name: e.target.value })}
+                                placeholder="Exercise name (e.g., Bench Press, Squats)"
+                                className="flex-1"
+                              />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeExercise(exercise.id)}
+                              >
+                                <Trash2 size={14} />
+                              </Button>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm font-medium">Sets</span>
+                                <Button 
+                                  onClick={() => addSet(exercise.id)} 
+                                  size="sm" 
+                                  variant="ghost"
+                                  className="flex items-center gap-1"
+                                >
+                                  <Plus size={12} />
+                                  Add Set
+                                </Button>
+                              </div>
+                              
+                              {exercise.sets.map((set, setIndex) => (
+                                <div key={set.id} className="grid grid-cols-4 gap-2 items-center bg-muted/30 p-2 rounded">
+                                  <div className="text-xs text-center font-medium">Set {setIndex + 1}</div>
+                                  <Input
+                                    type="number"
+                                    value={set.reps || ''}
+                                    onChange={(e) => updateSet(exercise.id, set.id, { reps: parseInt(e.target.value) || 0 })}
+                                    placeholder="Reps"
+                                    className="text-xs"
+                                  />
+                                  <Input
+                                    type="number"
+                                    step="0.5"
+                                    value={set.weight || ''}
+                                    onChange={(e) => updateSet(exercise.id, set.id, { weight: parseFloat(e.target.value) || undefined })}
+                                    placeholder="Weight (kg)"
+                                    className="text-xs"
+                                  />
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeSet(exercise.id, set.id)}
+                                  >
+                                    <X size={12} />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                    
                     <div>
                       <label className="text-sm font-medium">Workout Notes</label>
                       <Input
@@ -399,7 +570,7 @@ export default function Physical() {
                           ...prev,
                           workout: { ...prev.workout, notes: e.target.value }
                         }))}
-                        placeholder="How did it go?"
+                        placeholder="How did it go? Personal records?"
                       />
                     </div>
                   </CardContent>
@@ -424,17 +595,6 @@ export default function Physical() {
                           onChange={(e) => setFormData(prev => ({
                             ...prev,
                             weight: { ...prev.weight, value: parseFloat(e.target.value) || 0 }
-                          }))}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">Time</label>
-                        <Input
-                          type="time"
-                          value={formData.weight?.time || ''}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            weight: { ...prev.weight, time: e.target.value }
                           }))}
                         />
                       </div>
@@ -652,7 +812,8 @@ export default function Physical() {
                       <div>
                         <div className="font-medium">{log.workout.type}</div>
                         <div className="text-xs text-muted-foreground">
-                          {log.workout.duration}min • {getIntensityLabel(log.workout.intensity || 3)}
+                          {log.workout.duration && `${log.workout.duration}min • `}{getIntensityLabel(log.workout.intensity || 3)}
+                          {log.workout.exercises && log.workout.exercises.length > 0 && ` • ${log.workout.exercises.length} exercises`}
                         </div>
                       </div>
                     </div>
@@ -663,9 +824,6 @@ export default function Physical() {
                       <Scale className="h-5 w-5 text-green-500" />
                       <div>
                         <div className="font-medium">{log.weight.value}kg</div>
-                        <div className="text-xs text-muted-foreground">
-                          {log.weight.time && `at ${log.weight.time}`}
-                        </div>
                       </div>
                     </div>
                   )}
@@ -682,6 +840,32 @@ export default function Physical() {
                     </div>
                   )}
                 </div>
+
+                {log.workout?.exercises && log.workout.exercises.length > 0 && (
+                  <div className="space-y-2 mb-4">
+                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <Dumbbell className="h-4 w-4" />
+                      Exercises
+                    </h4>
+                    <div className="space-y-2">
+                      {log.workout.exercises.map((exercise) => (
+                        <div key={exercise.id} className="p-3 bg-muted/30 rounded-md">
+                          <div className="font-medium text-sm mb-2">{exercise.name}</div>
+                          {exercise.sets.length > 0 && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1 text-xs">
+                              {exercise.sets.map((set, index) => (
+                                <div key={set.id} className="bg-background/50 p-1 rounded text-center">
+                                  Set {index + 1}: {set.reps} reps
+                                  {set.weight && ` @ ${set.weight}kg`}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {log.meals && log.meals.length > 0 && (
                   <div className="space-y-2 mb-4">

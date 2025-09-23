@@ -82,11 +82,21 @@ export interface PhysicalLog {
     type?: string;
     duration?: number; // minutes
     intensity?: number; // 1-5 scale
+    exercises?: Array<{
+      id: string;
+      name: string;
+      sets: Array<{
+        id: string;
+        reps: number;
+        weight?: number; // weight used for this set
+        notes?: string;
+      }>;
+    }>;
     notes?: string;
   };
   weight?: {
     value: number; // in kg
-    time?: string; // time of measurement
+    notes?: string;
   };
   energy?: {
     level: number; // 1-5 scale
