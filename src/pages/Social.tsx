@@ -12,17 +12,27 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { toast } from '@/hooks/use-toast';
 import { Users, Calendar, Plus, Upload, FileText, AlertCircle, CheckCircle } from 'lucide-react';
 import { Contact } from '@/types';
-
 export default function Social() {
-  const { contacts, loading, dueContacts, markSent, snoozeContact, skipContact, addContact } = useContacts();
+  const {
+    contacts,
+    loading,
+    dueContacts,
+    markSent,
+    snoozeContact,
+    skipContact,
+    addContact
+  } = useContacts();
   const [showAddForm, setShowAddForm] = useState(false);
   const [showCSVUpload, setShowCSVUpload] = useState(false);
   const [csvFile, setCSVFile] = useState<File | null>(null);
   const [csvPreview, setCSVPreview] = useState<any[]>([]);
   const [csvMapping, setCSVMapping] = useState<Record<string, string>>({});
   const [csvStep, setCSVStep] = useState<'upload' | 'mapping' | 'importing'>('upload');
-  const [importProgress, setImportProgress] = useState({ current: 0, total: 0, errors: [] as string[] });
-  
+  const [importProgress, setImportProgress] = useState({
+    current: 0,
+    total: 0,
+    errors: [] as string[]
+  });
   const [formData, setFormData] = useState<Partial<Contact>>({
     name: '',
     email: '',
@@ -32,21 +42,18 @@ export default function Social() {
     current_situation: '',
     working_on: '',
     how_to_add_value: '',
-    notes: '',
+    notes: ''
   });
-
   const handleAddContact = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.name?.trim()) {
       toast({
         title: "Error",
         description: "Contact name is required.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     try {
       const contactData = {
         ...formData,
@@ -59,11 +66,10 @@ export default function Social() {
         working_on: formData.working_on?.trim() || undefined,
         how_to_add_value: formData.how_to_add_value?.trim() || undefined,
         notes: formData.notes?.trim() || undefined,
-        next_touch: new Date(), // Set to today so it appears in due contacts
+        next_touch: new Date() // Set to today so it appears in due contacts
       };
-
       await addContact(contactData as Omit<Contact, 'id' | 'user_id' | 'created_at' | 'updated_at'>);
-      
+
       // Reset form
       setFormData({
         name: '',
@@ -74,78 +80,82 @@ export default function Social() {
         current_situation: '',
         working_on: '',
         how_to_add_value: '',
-        notes: '',
+        notes: ''
       });
       setShowAddForm(false);
-      
       toast({
         title: "Contact Added",
-        description: `${contactData.name} has been added to your CRM.`,
+        description: `${contactData.name} has been added to your CRM.`
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to add contact. Please try again.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleMarkSent = async (contactId: string) => {
     try {
       await markSent(contactId);
       toast({
         title: "Contact Updated",
-        description: "Marked as contacted and scheduled for next week.",
+        description: "Marked as contacted and scheduled for next week."
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to update contact.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleSnooze = async (contactId: string) => {
     try {
       await snoozeContact(contactId);
       toast({
         title: "Contact Snoozed",
-        description: "Contact has been snoozed for 7 days.",
+        description: "Contact has been snoozed for 7 days."
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to snooze contact.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const handleSkip = async (contactId: string) => {
     try {
       await skipContact(contactId);
       toast({
         title: "Contact Skipped",
-        description: "Contact moved to tomorrow.",
+        description: "Contact moved to tomorrow."
       });
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to skip contact.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
 
   // CSV Upload Functions
-  const parseCSV = (text: string): { headers: string[]; rows: any[]; totalRows: number } => {
+  const parseCSV = (text: string): {
+    headers: string[];
+    rows: any[];
+    totalRows: number;
+  } => {
     const lines = text.split('\n').filter(line => line.trim());
-    if (lines.length === 0) return { headers: [], rows: [], totalRows: 0 };
-    
+    if (lines.length === 0) return {
+      headers: [],
+      rows: [],
+      totalRows: 0
+    };
     const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''));
-    const rows = lines.slice(1, 6).map(line => { // Preview first 5 rows
+    const rows = lines.slice(1, 6).map(line => {
+      // Preview first 5 rows
       const values = line.split(',').map(v => v.trim().replace(/['"]/g, ''));
       const row: any = {};
       headers.forEach((header, index) => {
@@ -153,31 +163,35 @@ export default function Social() {
       });
       return row;
     });
-    
-    return { headers, rows, totalRows: lines.length - 1 };
+    return {
+      headers,
+      rows,
+      totalRows: lines.length - 1
+    };
   };
-
   const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     if (!file.name.endsWith('.csv')) {
       toast({
         title: "Invalid File",
         description: "Please upload a CSV file.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
-
     setCSVFile(file);
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       const text = e.target?.result as string;
       const parsed = parseCSV(text);
       setCSVPreview(parsed.rows);
-      setImportProgress({ current: 0, total: parsed.totalRows, errors: [] });
-      
+      setImportProgress({
+        current: 0,
+        total: parsed.totalRows,
+        errors: []
+      });
+
       // Auto-map common column names
       const autoMapping: Record<string, string> = {};
       parsed.headers.forEach(header => {
@@ -199,25 +213,22 @@ export default function Social() {
     };
     reader.readAsText(file);
   };
-
   const handleCSVImport = async () => {
     if (!csvFile) return;
-    
     setCSVStep('importing');
     const reader = new FileReader();
-    reader.onload = async (e) => {
+    reader.onload = async e => {
       const text = e.target?.result as string;
       const lines = text.split('\n').filter(line => line.trim());
       const headers = lines[0].split(',').map(h => h.trim().replace(/['"]/g, ''));
       const errors: string[] = [];
-      
       for (let i = 1; i < lines.length; i++) {
         const values = lines[i].split(',').map(v => v.trim().replace(/['"]/g, ''));
         const row: any = {};
         headers.forEach((header, index) => {
           row[header] = values[index] || '';
         });
-        
+
         // Map CSV columns to contact fields
         const contactData: any = {};
         Object.entries(csvMapping).forEach(([csvColumn, contactField]) => {
@@ -225,39 +236,42 @@ export default function Social() {
             contactData[contactField] = row[csvColumn];
           }
         });
-        
+
         // Validate required fields
         if (!contactData.name?.trim()) {
           errors.push(`Row ${i}: Name is required`);
           continue;
         }
-        
+
         // Set default next_touch to today
         contactData.next_touch = new Date();
-        
         try {
           await addContact(contactData);
-          setImportProgress(prev => ({ ...prev, current: i }));
+          setImportProgress(prev => ({
+            ...prev,
+            current: i
+          }));
         } catch (error) {
           errors.push(`Row ${i}: Failed to import ${contactData.name}`);
         }
       }
-      
-      setImportProgress(prev => ({ ...prev, errors }));
-      
+      setImportProgress(prev => ({
+        ...prev,
+        errors
+      }));
       if (errors.length === 0) {
         toast({
           title: "Import Successful",
-          description: `Successfully imported ${lines.length - 1} contacts.`,
+          description: `Successfully imported ${lines.length - 1} contacts.`
         });
       } else {
         toast({
           title: "Import Completed with Errors",
           description: `Imported ${lines.length - 1 - errors.length} contacts. ${errors.length} errors occurred.`,
-          variant: "destructive",
+          variant: "destructive"
         });
       }
-      
+
       // Reset CSV upload state
       setTimeout(() => {
         setShowCSVUpload(false);
@@ -265,15 +279,16 @@ export default function Social() {
         setCSVPreview([]);
         setCSVMapping({});
         setCSVStep('upload');
-        setImportProgress({ current: 0, total: 0, errors: [] });
+        setImportProgress({
+          current: 0,
+          total: 0,
+          errors: []
+        });
       }, 2000);
     };
     reader.readAsText(csvFile);
   };
-
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Users className="h-6 w-6 text-foreground" />
@@ -295,50 +310,43 @@ export default function Social() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Name *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    placeholder="Full name"
-                    required
-                  />
+                  <Input id="name" value={formData.name || ''} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    name: e.target.value
+                  }))} placeholder="Full name" required />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={formData.email || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    placeholder="email@example.com"
-                  />
+                  <Input id="email" type="email" value={formData.email || ''} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    email: e.target.value
+                  }))} placeholder="email@example.com" />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="phone">Phone</Label>
-                  <Input
-                    id="phone"
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    placeholder="+1 (555) 123-4567"
-                  />
+                  <Input id="phone" value={formData.phone || ''} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    phone: e.target.value
+                  }))} placeholder="+1 (555) 123-4567" />
                 </div>
                 <div>
                   <Label htmlFor="company">Company</Label>
-                  <Input
-                    id="company"
-                    value={formData.company || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, company: e.target.value }))}
-                    placeholder="Company name"
-                  />
+                  <Input id="company" value={formData.company || ''} onChange={e => setFormData(prev => ({
+                    ...prev,
+                    company: e.target.value
+                  }))} placeholder="Company name" />
                 </div>
               </div>
 
               <div>
                 <Label htmlFor="segment">Segment</Label>
-                <Select value={formData.segment || ''} onValueChange={(value) => setFormData(prev => ({ ...prev, segment: value }))}>
+                <Select value={formData.segment || ''} onValueChange={value => setFormData(prev => ({
+                  ...prev,
+                  segment: value
+                }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select relationship segment" />
                   </SelectTrigger>
@@ -353,46 +361,34 @@ export default function Social() {
 
               <div>
                 <Label htmlFor="current_situation">Current Situation</Label>
-                <Textarea
-                  id="current_situation"
-                  value={formData.current_situation || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, current_situation: e.target.value }))}
-                  placeholder="What's happening in their life/work right now?"
-                  rows={3}
-                />
+                <Textarea id="current_situation" value={formData.current_situation || ''} onChange={e => setFormData(prev => ({
+                  ...prev,
+                  current_situation: e.target.value
+                }))} placeholder="What's happening in their life/work right now?" rows={3} />
               </div>
 
               <div>
                 <Label htmlFor="working_on">What They're Working On</Label>
-                <Textarea
-                  id="working_on"
-                  value={formData.working_on || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, working_on: e.target.value }))}
-                  placeholder="Current projects, goals, or challenges"
-                  rows={3}
-                />
+                <Textarea id="working_on" value={formData.working_on || ''} onChange={e => setFormData(prev => ({
+                  ...prev,
+                  working_on: e.target.value
+                }))} placeholder="Current projects, goals, or challenges" rows={3} />
               </div>
 
               <div>
                 <Label htmlFor="how_to_add_value">How to Add Value</Label>
-                <Textarea
-                  id="how_to_add_value"
-                  value={formData.how_to_add_value || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, how_to_add_value: e.target.value }))}
-                  placeholder="Ways you can help them or add value to their work/life"
-                  rows={3}
-                />
+                <Textarea id="how_to_add_value" value={formData.how_to_add_value || ''} onChange={e => setFormData(prev => ({
+                  ...prev,
+                  how_to_add_value: e.target.value
+                }))} placeholder="Ways you can help them or add value to their work/life" rows={3} />
               </div>
 
               <div>
                 <Label htmlFor="notes">Notes</Label>
-                <Textarea
-                  id="notes"
-                  value={formData.notes || ''}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Additional notes about this contact"
-                  rows={3}
-                />
+                <Textarea id="notes" value={formData.notes || ''} onChange={e => setFormData(prev => ({
+                  ...prev,
+                  notes: e.target.value
+                }))} placeholder="Additional notes about this contact" rows={3} />
               </div>
 
               <div className="flex gap-2 pt-4">
@@ -409,27 +405,17 @@ export default function Social() {
 
         <Dialog open={showCSVUpload} onOpenChange={setShowCSVUpload}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="flex items-center gap-2">
-              <Upload size={16} />
-              Import CSV
-            </Button>
+            
           </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Import Contacts from CSV</DialogTitle>
             </DialogHeader>
             
-            {csvStep === 'upload' && (
-              <div className="space-y-4">
+            {csvStep === 'upload' && <div className="space-y-4">
                 <div>
                   <Label htmlFor="csv-file">Upload CSV File</Label>
-                  <Input
-                    id="csv-file"
-                    type="file"
-                    accept=".csv"
-                    onChange={handleCSVUpload}
-                    className="mt-1"
-                  />
+                  <Input id="csv-file" type="file" accept=".csv" onChange={handleCSVUpload} className="mt-1" />
                 </div>
                 
                 <Alert>
@@ -439,11 +425,9 @@ export default function Social() {
                     The first row should contain column headers.
                   </AlertDescription>
                 </Alert>
-              </div>
-            )}
+              </div>}
 
-            {csvStep === 'mapping' && csvPreview.length > 0 && (
-              <div className="space-y-4">
+            {csvStep === 'mapping' && csvPreview.length > 0 && <div className="space-y-4">
                 <div>
                   <h3 className="text-lg font-medium mb-2">Map CSV Columns</h3>
                   <p className="text-sm text-muted-foreground mb-4">
@@ -452,15 +436,14 @@ export default function Social() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {Object.keys(csvPreview[0] || {}).map(column => (
-                    <div key={column}>
+                  {Object.keys(csvPreview[0] || {}).map(column => <div key={column}>
                       <Label htmlFor={`mapping-${column}`}>
                         CSV Column: <strong>{column}</strong>
                       </Label>
-                      <Select 
-                        value={csvMapping[column] || ''} 
-                        onValueChange={(value) => setCSVMapping(prev => ({ ...prev, [column]: value }))}
-                      >
+                      <Select value={csvMapping[column] || ''} onValueChange={value => setCSVMapping(prev => ({
+                    ...prev,
+                    [column]: value
+                  }))}>
                         <SelectTrigger>
                           <SelectValue placeholder="Select field..." />
                         </SelectTrigger>
@@ -480,20 +463,15 @@ export default function Social() {
                       <div className="text-xs text-muted-foreground mt-1">
                         Sample: {csvPreview[0]?.[column] || 'N/A'}
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                 </div>
 
                 <div className="border rounded-lg p-4 bg-muted/30">
                   <h4 className="text-sm font-medium mb-2">Preview (First 5 Rows)</h4>
                   <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {csvPreview.map((row, index) => (
-                      <div key={index} className="text-xs border-b pb-1">
-                        <strong>Row {index + 1}:</strong> {Object.entries(row).map(([key, value]) => 
-                          csvMapping[key] ? `${csvMapping[key]}: ${value}` : null
-                        ).filter(Boolean).join(' | ')}
-                      </div>
-                    ))}
+                    {csvPreview.map((row, index) => <div key={index} className="text-xs border-b pb-1">
+                        <strong>Row {index + 1}:</strong> {Object.entries(row).map(([key, value]) => csvMapping[key] ? `${csvMapping[key]}: ${value}` : null).filter(Boolean).join(' | ')}
+                      </div>)}
                   </div>
                   <div className="text-sm text-muted-foreground mt-2">
                     Total rows to import: {importProgress.total}
@@ -508,11 +486,9 @@ export default function Social() {
                     Back
                   </Button>
                 </div>
-              </div>
-            )}
+              </div>}
 
-            {csvStep === 'importing' && (
-              <div className="space-y-4">
+            {csvStep === 'importing' && <div className="space-y-4">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                   <h3 className="text-lg font-medium">Importing Contacts...</h3>
@@ -522,41 +498,31 @@ export default function Social() {
                 </div>
 
                 <div className="w-full bg-muted rounded-full h-2">
-                  <div 
-                    className="bg-primary h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
-                  />
+                  <div className="bg-primary h-2 rounded-full transition-all duration-300" style={{
+                  width: `${importProgress.current / importProgress.total * 100}%`
+                }} />
                 </div>
 
-                {importProgress.errors.length > 0 && (
-                  <Alert variant="destructive">
+                {importProgress.errors.length > 0 && <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
                       <div className="space-y-1">
                         <div>Errors occurred during import:</div>
                         <div className="max-h-20 overflow-y-auto text-xs">
-                          {importProgress.errors.slice(0, 5).map((error, index) => (
-                            <div key={index}>• {error}</div>
-                          ))}
-                          {importProgress.errors.length > 5 && (
-                            <div>... and {importProgress.errors.length - 5} more errors</div>
-                          )}
+                          {importProgress.errors.slice(0, 5).map((error, index) => <div key={index}>• {error}</div>)}
+                          {importProgress.errors.length > 5 && <div>... and {importProgress.errors.length - 5} more errors</div>}
                         </div>
                       </div>
                     </AlertDescription>
-                  </Alert>
-                )}
+                  </Alert>}
 
-                {importProgress.current === importProgress.total && (
-                  <Alert>
+                {importProgress.current === importProgress.total && <Alert>
                     <CheckCircle className="h-4 w-4" />
                     <AlertDescription>
                       Import completed! Successfully imported {importProgress.total - importProgress.errors.length} contacts.
                     </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            )}
+                  </Alert>}
+              </div>}
           </DialogContent>
         </Dialog>
       </div>
@@ -604,36 +570,18 @@ export default function Social() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 gap-4">
-            {loading ? (
-              <div className="text-center py-12">
+            {loading ? <div className="text-center py-12">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
                 <p className="text-muted-foreground">Loading contacts...</p>
-              </div>
-            ) : dueContacts.length === 0 ? (
-              <div className="text-center py-12">
+              </div> : dueContacts.length === 0 ? <div className="text-center py-12">
                 <Users size={48} className="mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium text-foreground mb-2">No contacts due today</h3>
                 <p className="text-muted-foreground">
-                  {contacts.length === 0 
-                    ? "Start building your network by adding contacts to your CRM."
-                    : "Great job! You're all caught up for today."
-                  }
+                  {contacts.length === 0 ? "Start building your network by adding contacts to your CRM." : "Great job! You're all caught up for today."}
                 </p>
-              </div>
-            ) : (
-              dueContacts.map((contact) => (
-                <ContactCard
-                  key={contact.id}
-                  contact={contact}
-                  onMarkSent={() => handleMarkSent(contact.id)}
-                  onSnooze={() => handleSnooze(contact.id)}
-                  onSkip={() => handleSkip(contact.id)}
-                />
-              ))
-            )}
+              </div> : dueContacts.map(contact => <ContactCard key={contact.id} contact={contact} onMarkSent={() => handleMarkSent(contact.id)} onSnooze={() => handleSnooze(contact.id)} onSkip={() => handleSkip(contact.id)} />)}
           </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 }
