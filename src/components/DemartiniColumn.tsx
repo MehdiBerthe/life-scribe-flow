@@ -312,6 +312,10 @@ export function DemartiniColumn({
             Add Another Answer
           </Button>
 
+          <Button variant="outline" onClick={saveColumn} className="w-full">
+            Save Progress
+          </Button>
+
           {(!config.target_count || getAnswerCount() >= config.target_count) && config.number !== 1 ? (
             <>
               <div className="border-t pt-4">
@@ -368,17 +372,11 @@ export function DemartiniColumn({
               Previous Column
             </Button>
             
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button variant="outline" onClick={saveColumn}>
-                Save Progress
+            {canProceed && (
+              <Button onClick={onNextColumn}>
+                Next Column
               </Button>
-              
-              {canProceed && (
-                <Button onClick={onNextColumn}>
-                  Next Column
-                </Button>
-              )}
-            </div>
+            )}
           </div>
         </CardContent>
       </Card>
