@@ -85,12 +85,7 @@ export interface PhysicalLog {
     exercises?: Array<{
       id: string;
       name: string;
-      sets: Array<{
-        id: string;
-        reps: number;
-        weight?: number; // weight used for this set
-        notes?: string;
-      }>;
+      sets: number; // number of sets performed
     }>;
     notes?: string;
   };

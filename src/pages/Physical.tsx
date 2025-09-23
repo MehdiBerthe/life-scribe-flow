@@ -19,7 +19,7 @@ export default function Physical() {
   
   const [formData, setFormData] = useState<Partial<PhysicalLog>>({
     sleep: { hours: undefined, quality: 3 },
-    workout: { type: '', duration: undefined, intensity: 3, exercises: [] },
+      workout: { type: '', duration: undefined, intensity: 3, exercises: [] },
     weight: { value: 0 },
     energy: { level: 3 },
     caffeine: { cups: undefined },
@@ -71,7 +71,7 @@ export default function Physical() {
     const newExercise = {
       id: generateId(),
       name: '',
-      sets: []
+      sets: 0
     };
     
     setFormData(prev => ({
@@ -83,7 +83,7 @@ export default function Physical() {
     }));
   };
 
-  const updateExercise = (exerciseId: string, updates: { name?: string }) => {
+  const updateExercise = (exerciseId: string, updates: { name?: string; sets?: number }) => {
     setFormData(prev => ({
       ...prev,
       workout: {
@@ -101,60 +101,6 @@ export default function Physical() {
       workout: {
         ...prev.workout,
         exercises: prev.workout?.exercises?.filter(exercise => exercise.id !== exerciseId) || []
-      }
-    }));
-  };
-
-  const addSet = (exerciseId: string) => {
-    const newSet = {
-      id: generateId(),
-      reps: 0,
-      weight: undefined,
-      notes: ''
-    };
-    
-    setFormData(prev => ({
-      ...prev,
-      workout: {
-        ...prev.workout,
-        exercises: prev.workout?.exercises?.map(exercise => 
-          exercise.id === exerciseId 
-            ? { ...exercise, sets: [...exercise.sets, newSet] }
-            : exercise
-        ) || []
-      }
-    }));
-  };
-
-  const updateSet = (exerciseId: string, setId: string, updates: { reps?: number; weight?: number; notes?: string }) => {
-    setFormData(prev => ({
-      ...prev,
-      workout: {
-        ...prev.workout,
-        exercises: prev.workout?.exercises?.map(exercise => 
-          exercise.id === exerciseId 
-            ? {
-                ...exercise,
-                sets: exercise.sets.map(set => 
-                  set.id === setId ? { ...set, ...updates } : set
-                )
-              }
-            : exercise
-        ) || []
-      }
-    }));
-  };
-
-  const removeSet = (exerciseId: string, setId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      workout: {
-        ...prev.workout,
-        exercises: prev.workout?.exercises?.map(exercise => 
-          exercise.id === exerciseId 
-            ? { ...exercise, sets: exercise.sets.filter(set => set.id !== setId) }
-            : exercise
-        ) || []
       }
     }));
   };
@@ -257,7 +203,7 @@ export default function Physical() {
     setEditingLogId(null);
     setFormData({
       sleep: { quality: 3 },
-      workout: { intensity: 3, exercises: [] },
+        workout: { intensity: 3, exercises: [] },
       weight: { value: 0 },
       energy: { level: 3 },
       caffeine: {},
@@ -499,64 +445,35 @@ export default function Physical() {
                       {formData.workout?.exercises?.map((exercise, exerciseIndex) => (
                         <Card key={exercise.id} className="border-l-4 border-l-orange-500/50">
                           <CardContent className="pt-4 space-y-3">
-                            <div className="flex items-center gap-2">
-                              <Input
-                                value={exercise.name}
-                                onChange={(e) => updateExercise(exercise.id, { name: e.target.value })}
-                                placeholder="Exercise name (e.g., Bench Press, Squats)"
-                                className="flex-1"
-                              />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => removeExercise(exercise.id)}
-                              >
-                                <Trash2 size={14} />
-                              </Button>
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm font-medium">Sets</span>
-                                <Button 
-                                  onClick={() => addSet(exercise.id)} 
-                                  size="sm" 
-                                  variant="ghost"
-                                  className="flex items-center gap-1"
-                                >
-                                  <Plus size={12} />
-                                  Add Set
-                                </Button>
-                              </div>
-                              
-                              {exercise.sets.map((set, setIndex) => (
-                                <div key={set.id} className="grid grid-cols-4 gap-2 items-center bg-muted/30 p-2 rounded">
-                                  <div className="text-xs text-center font-medium">Set {setIndex + 1}</div>
-                                  <Input
-                                    type="number"
-                                    value={set.reps || ''}
-                                    onChange={(e) => updateSet(exercise.id, set.id, { reps: parseInt(e.target.value) || 0 })}
-                                    placeholder="Reps"
-                                    className="text-xs"
-                                  />
-                                  <Input
-                                    type="number"
-                                    step="0.5"
-                                    value={set.weight || ''}
-                                    onChange={(e) => updateSet(exercise.id, set.id, { weight: parseFloat(e.target.value) || undefined })}
-                                    placeholder="Weight (kg)"
-                                    className="text-xs"
-                                  />
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => removeSet(exercise.id, set.id)}
-                                  >
-                                    <X size={12} />
-                                  </Button>
-                                </div>
-                              ))}
-                            </div>
+                             <div className="grid grid-cols-3 gap-2 items-center">
+                               <div className="col-span-2">
+                                 <label className="text-xs font-medium">Exercise</label>
+                                 <Input
+                                   value={exercise.name}
+                                   onChange={(e) => updateExercise(exercise.id, { name: e.target.value })}
+                                   placeholder="Exercise name (e.g., Bench Press, Squats)"
+                                 />
+                               </div>
+                               <div>
+                                 <label className="text-xs font-medium">Sets</label>
+                                 <div className="flex gap-1">
+                                   <Input
+                                     type="number"
+                                     value={exercise.sets || ''}
+                                     onChange={(e) => updateExercise(exercise.id, { sets: parseInt(e.target.value) || 0 })}
+                                     placeholder="0"
+                                     min="0"
+                                   />
+                                   <Button
+                                     variant="ghost"
+                                     size="sm"
+                                     onClick={() => removeExercise(exercise.id)}
+                                   >
+                                     <Trash2 size={14} />
+                                   </Button>
+                                 </div>
+                               </div>
+                             </div>
                           </CardContent>
                         </Card>
                       ))}
@@ -850,17 +767,12 @@ export default function Physical() {
                     <div className="space-y-2">
                       {log.workout.exercises.map((exercise) => (
                         <div key={exercise.id} className="p-3 bg-muted/30 rounded-md">
-                          <div className="font-medium text-sm mb-2">{exercise.name}</div>
-                          {exercise.sets.length > 0 && (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1 text-xs">
-                              {exercise.sets.map((set, index) => (
-                                <div key={set.id} className="bg-background/50 p-1 rounded text-center">
-                                  Set {index + 1}: {set.reps} reps
-                                  {set.weight && ` @ ${set.weight}kg`}
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                           <div className="font-medium text-sm mb-2">{exercise.name}</div>
+                           {exercise.sets > 0 && (
+                             <div className="text-xs text-muted-foreground">
+                               {exercise.sets} sets performed
+                             </div>
+                           )}
                         </div>
                       ))}
                     </div>
