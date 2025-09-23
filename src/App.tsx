@@ -15,6 +15,7 @@ import AICopilotPage from "./pages/AICopilotPage";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import TestLLMStats from "./pages/TestLLMStats";
+import DemartiniPage from "./pages/DemartiniPage";
 
 const queryClient = new QueryClient();
 
@@ -31,6 +32,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/journal" element={<Journal />} />
               <Route path="/planning" element={<Planning />} />
+              <Route path="/demartini" element={<DemartiniPage />} />
               <Route path="/reading" element={<Reading />} />
               <Route path="/finance" element={<Finance />} />
               <Route path="/physical" element={<Physical />} />
