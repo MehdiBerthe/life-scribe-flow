@@ -46,7 +46,7 @@ export interface ColumnConfig {
 
 export const DEMARTINI_COLUMNS: ColumnConfig[] = [
   // Side A - Admired Traits
-  { number: 1, title: "Admired Traits", question: "List 3 specific traits, actions, or inactions you admire most in this person. Write them in short form (3–5 words). Add where and when you observed each.", target_count: 3, requires_who_where_when: true, side: 'A' },
+  { number: 1, title: "Admired Trait", question: "Choose 1 specific trait, action, or inaction you admire most in this person. Write it in short form (3–5 words). Add where and when you observed it.", target_count: 1, requires_who_where_when: true, side: 'A' },
   { number: 2, title: "Times You Showed Same Traits", question: "List times YOU showed those same traits. For each, add who/where/when. Aim for 20–50 items.", target_count: 20, requires_who_where_when: true, side: 'A' },
   { number: 3, title: "Drawbacks to You", question: "Think of times they showed those admired traits. What were the drawbacks or downsides to YOU? Aim for 20–50.", target_count: 20, requires_who_where_when: false, side: 'A' },
   { number: 4, title: "Drawbacks to Others", question: "List the drawbacks to OTHERS when you showed the same admired traits. 20–50 items.", target_count: 20, requires_who_where_when: false, side: 'A' },

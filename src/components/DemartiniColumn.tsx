@@ -135,7 +135,7 @@ export function DemartiniColumn({
       answers: answers.filter(a => a.text.trim()),
       certainty_check: certaintyCheck,
       target_count: config.target_count,
-      is_complete: Boolean(certaintyCheck?.is_certain),
+      is_complete: config.number === 1 ? targetMet : Boolean(certaintyCheck?.is_certain),
     };
 
     const updatedSession: DemartiniSession = {
@@ -196,6 +196,7 @@ export function DemartiniColumn({
   const getAnswerCount = () => answers.filter(a => a.text.trim()).length;
   const isComplete = currentColumn?.is_complete || false;
   const targetMet = !config.target_count || getAnswerCount() >= config.target_count;
+  const canProceed = config.number === 1 ? targetMet : isComplete;
 
   return (
     <div className="space-y-6">
@@ -311,7 +312,7 @@ export function DemartiniColumn({
             Add Another Answer
           </Button>
 
-          {!config.target_count || getAnswerCount() >= config.target_count ? (
+          {(!config.target_count || getAnswerCount() >= config.target_count) && config.number !== 1 ? (
             <>
               <div className="border-t pt-4">
                 <h3 className="font-medium mb-3">Certainty Check</h3>
@@ -349,7 +350,7 @@ export function DemartiniColumn({
                 )}
               </div>
             </>
-          ) : (
+          ) : config.number === 1 && targetMet ? null : (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>
@@ -372,7 +373,7 @@ export function DemartiniColumn({
                 Save Progress
               </Button>
               
-              {isComplete && (
+              {canProceed && (
                 <Button onClick={onNextColumn}>
                   Next Column
                 </Button>
