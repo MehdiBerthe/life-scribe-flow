@@ -130,25 +130,34 @@ export function DemartiniColumn({
   const saveColumn = () => {
     if (!validateAllAnswers()) return;
 
+    // Save the chosen trait from Column 1 or 8
+    let updatedSession = { ...session };
+    if (config.number === 1 || config.number === 8) {
+      const chosenAnswer = answers.find(a => a.text.trim());
+      if (chosenAnswer) {
+        updatedSession.chosen_trait = chosenAnswer.text.trim();
+      }
+    }
+
     const columnData: DemartiniColumnType = {
       column_number: config.number,
       answers: answers.filter(a => a.text.trim()),
       certainty_check: certaintyCheck,
       target_count: config.target_count,
-      is_complete: (config.number === 1 || config.number === 8) ? targetMet : Boolean(certaintyCheck?.is_certain),
+      is_complete: (config.number === 1 || config.number === 8) ? targetMet : Boolean(certaintyCheck?.is_equilibrated),
     };
 
-    const updatedSession: DemartiniSession = {
-      ...session,
+    updatedSession = {
+      ...updatedSession,
       columns: {
-        ...session.columns,
+        ...updatedSession.columns,
         [config.number.toString()]: columnData,
       },
       progress: {
-        ...session.progress,
+        ...updatedSession.progress,
         completed_columns: columnData.is_complete 
-          ? [...new Set([...session.progress.completed_columns, config.number])]
-          : session.progress.completed_columns.filter(n => n !== config.number),
+          ? [...new Set([...updatedSession.progress.completed_columns, config.number])]
+          : updatedSession.progress.completed_columns.filter(n => n !== config.number),
       },
     };
 
@@ -156,9 +165,9 @@ export function DemartiniColumn({
     toast.success('Column saved successfully');
   };
 
-  const completeCertaintyCheck = (is_certain: boolean, note: string) => {
+  const completeCertaintyCheck = (is_equilibrated: boolean, note: string) => {
     const certainty: CertaintyCheck = {
-      is_certain,
+      is_equilibrated,
       note: note.trim(),
       timestamp: new Date().toISOString(),
     };
@@ -172,7 +181,7 @@ export function DemartiniColumn({
         answers: answers.filter(a => a.text.trim()),
         certainty_check: certainty,
         target_count: config.target_count,
-        is_complete: is_certain,
+        is_complete: is_equilibrated,
       };
 
       const updatedSession: DemartiniSession = {
@@ -183,7 +192,7 @@ export function DemartiniColumn({
         },
         progress: {
           ...session.progress,
-          completed_columns: is_certain 
+          completed_columns: is_equilibrated 
             ? [...new Set([...session.progress.completed_columns, config.number])]
             : session.progress.completed_columns.filter(n => n !== config.number),
         },
@@ -217,6 +226,11 @@ export function DemartiniColumn({
             <div>
               <CardTitle className="flex items-center gap-2">
                 Column {config.number}: {config.title}
+                {session.chosen_trait && config.number > 1 && (
+                  <span className="text-sm font-normal text-muted-foreground">
+                    - "{session.chosen_trait}"
+                  </span>
+                )}
                 {isComplete && <CheckCircle className="h-5 w-5 text-green-500" />}
               </CardTitle>
               <div className="flex items-center gap-2 mt-2">
@@ -319,9 +333,9 @@ export function DemartiniColumn({
           {(!config.target_count || getAnswerCount() >= config.target_count) && config.number !== 1 && config.number !== 8 ? (
             <>
               <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">Certainty Check</h3>
+                <h3 className="font-medium mb-3">Perception Equilibrium Check</h3>
                 <p className="text-sm text-muted-foreground mb-4">
-                  Are you now certain about your answers for Column {config.number}?
+                  Do you feel your perceptions about this trait are now equilibrated? Have you reached at least 25 answers to balance your emotional charge?
                 </p>
                 
                 {!certaintyCheck ? (
@@ -329,13 +343,13 @@ export function DemartiniColumn({
                 ) : (
                   <div className="p-4 bg-muted rounded-lg">
                     <div className="flex items-center gap-2 mb-2">
-                      {certaintyCheck.is_certain ? (
+                      {certaintyCheck.is_equilibrated ? (
                         <CheckCircle className="h-5 w-5 text-green-500" />
                       ) : (
                         <XCircle className="h-5 w-5 text-orange-500" />
                       )}
                       <span className="font-medium">
-                        {certaintyCheck.is_certain ? 'Certain' : 'Not Certain'}
+                        {certaintyCheck.is_equilibrated ? 'Equilibrated' : 'Not Equilibrated'}
                       </span>
                     </div>
                     <p className="text-sm">{certaintyCheck.note}</p>
@@ -348,7 +362,7 @@ export function DemartiniColumn({
                       onClick={() => setCertaintyCheck(null)}
                       className="mt-2"
                     >
-                      Redo Certainty Check
+                      Redo Equilibrium Check
                     </Button>
                   </div>
                 )}
@@ -385,25 +399,25 @@ export function DemartiniColumn({
 }
 
 interface CertaintyCheckFormProps {
-  onComplete: (is_certain: boolean, note: string) => void;
+  onComplete: (is_equilibrated: boolean, note: string) => void;
 }
 
 function CertaintyCheckForm({ onComplete }: CertaintyCheckFormProps) {
-  const [is_certain, setIsCertain] = useState<boolean | null>(null);
+  const [is_equilibrated, setIsEquilibrated] = useState<boolean | null>(null);
   const [note, setNote] = useState('');
 
   const handleSubmit = () => {
-    if (is_certain === null) {
+    if (is_equilibrated === null) {
       toast.error('Please select Yes or No');
       return;
     }
     
     if (!note.trim()) {
-      toast.error('Please add a note explaining your certainty level');
+      toast.error('Please add a note explaining your equilibrium level');
       return;
     }
     
-    onComplete(is_certain, note);
+    onComplete(is_equilibrated, note);
   };
 
   return (
@@ -411,27 +425,27 @@ function CertaintyCheckForm({ onComplete }: CertaintyCheckFormProps) {
       <div className="flex gap-4">
         <div className="flex items-center space-x-2">
           <Checkbox
-            id="certain-yes"
-            checked={is_certain === true}
-            onCheckedChange={() => setIsCertain(true)}
+            id="equilibrated-yes"
+            checked={is_equilibrated === true}
+            onCheckedChange={() => setIsEquilibrated(true)}
           />
-          <Label htmlFor="certain-yes">Yes, I'm certain</Label>
+          <Label htmlFor="equilibrated-yes">Yes, I feel equilibrated</Label>
         </div>
         <div className="flex items-center space-x-2">
           <Checkbox
-            id="certain-no"
-            checked={is_certain === false}
-            onCheckedChange={() => setIsCertain(false)}
+            id="equilibrated-no"
+            checked={is_equilibrated === false}
+            onCheckedChange={() => setIsEquilibrated(false)}
           />
-          <Label htmlFor="certain-no">No, I need more reflection</Label>
+          <Label htmlFor="equilibrated-no">No, I need more reflection</Label>
         </div>
       </div>
       
       <div>
-        <Label htmlFor="certainty-note">Note (required)</Label>
+        <Label htmlFor="equilibrium-note">Note (required)</Label>
         <Textarea
-          id="certainty-note"
-          placeholder="Explain why you are or aren't certain about these answers..."
+          id="equilibrium-note"
+          placeholder="Explain why you feel equilibrated or need more reflection about this trait..."
           value={note}
           onChange={(e) => setNote(e.target.value)}
           className="mt-1"
@@ -439,7 +453,7 @@ function CertaintyCheckForm({ onComplete }: CertaintyCheckFormProps) {
       </div>
       
       <Button onClick={handleSubmit} className="w-full">
-        Complete Certainty Check
+        Complete Equilibrium Check
       </Button>
     </div>
   );

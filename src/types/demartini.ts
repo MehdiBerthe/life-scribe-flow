@@ -8,7 +8,7 @@ export interface DemartiniAnswer {
 }
 
 export interface CertaintyCheck {
-  is_certain: boolean;
+  is_equilibrated: boolean;
   note: string;
   timestamp: string;
 }
@@ -26,6 +26,7 @@ export interface DemartiniSession {
   title: string;
   selected_side: 'A' | 'B' | 'C';
   side_c_mode?: 'self' | 'relief' | 'grief';
+  chosen_trait?: string; // The trait/event being worked on
   columns: { [key: string]: DemartiniColumn };
   progress: {
     current_column: number;
@@ -48,21 +49,21 @@ export interface ColumnConfig {
 export const DEMARTINI_COLUMNS: ColumnConfig[] = [
   // Side A - Admired Traits
   { number: 1, title: "Admired Trait", question: "Choose 1 specific trait, action, or inaction you admire most in this person. Write it in short form (3–5 words). Add where and when you observed it.", target_count: 1, requires_who_where_when: true, side: 'A' },
-  { number: 2, title: "Times You Showed Same Traits", question: "List times YOU showed those same traits. For each, add who/where/when. Aim for 20–50 items.", target_count: 20, requires_who_where_when: true, side: 'A' },
-  { number: 3, title: "Drawbacks to You", question: "Think of times they showed those admired traits. What were the drawbacks or downsides to YOU? Aim for 20–50.", target_count: 20, requires_who_where_when: false, side: 'A' },
-  { number: 4, title: "Drawbacks to Others", question: "List the drawbacks to OTHERS when you showed the same admired traits. 20–50 items.", target_count: 20, requires_who_where_when: false, side: 'A' },
-  { number: 5, title: "Opposite Traits They Displayed", question: "List evidence of the OPPOSITE traits they displayed, in the same situations. Be specific.", requires_who_where_when: false, side: 'A' },
-  { number: 6, title: "Who Displayed Opposite", question: "When they showed those admired traits, who else (including you) displayed the OPPOSITE traits at the same time?", requires_who_where_when: true, side: 'A' },
-  { number: 7, title: "Benefits If Opposite", question: "What would have been the BENEFITS to you if they had shown the OPPOSITE traits instead?", requires_who_where_when: false, side: 'A' },
+  { number: 2, title: "Times You Showed Same Trait", question: "List times YOU showed the same trait. For each, add who/where/when. Aim for at least 25 items.", target_count: 25, requires_who_where_when: true, side: 'A' },
+  { number: 3, title: "Drawbacks to You", question: "Think of times they showed that admired trait. What were the drawbacks or downsides to YOU? Aim for at least 25.", target_count: 25, requires_who_where_when: false, side: 'A' },
+  { number: 4, title: "Drawbacks to Others", question: "List the drawbacks to OTHERS when you showed the same admired trait. At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'A' },
+  { number: 5, title: "Opposite Traits They Displayed", question: "List evidence of the OPPOSITE traits they displayed, in the same situations. Be specific. At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'A' },
+  { number: 6, title: "Who Displayed Opposite", question: "When they showed that admired trait, who else (including you) displayed the OPPOSITE traits at the same time? At least 25 items.", target_count: 25, requires_who_where_when: true, side: 'A' },
+  { number: 7, title: "Benefits If Opposite", question: "What would have been the BENEFITS to you if they had shown the OPPOSITE traits instead? At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'A' },
   
   // Side B - Despised Traits  
   { number: 8, title: "Despised Trait", question: "Choose 1 specific trait, action, or inaction you dislike most in this person. Write it in short form (3–5 words). Add where and when you observed it.", target_count: 1, requires_who_where_when: true, side: 'B' },
-  { number: 9, title: "Times You Showed Same Traits", question: "List times YOU displayed the same traits. For each, add who/where/when.", requires_who_where_when: true, side: 'B' },
-  { number: 10, title: "Benefits to You", question: "Think of moments they showed those disliked traits. What were the BENEFITS or upsides to YOU? Provide 20–50.", target_count: 20, requires_who_where_when: false, side: 'B' },
-  { number: 11, title: "Benefits to Others", question: "What were the BENEFITS to others when you displayed those same traits? Provide 20–50.", target_count: 20, requires_who_where_when: false, side: 'B' },
-  { number: 12, title: "Opposite Traits They Displayed", question: "List evidence of the OPPOSITE traits they also displayed in those situations.", requires_who_where_when: false, side: 'B' },
-  { number: 13, title: "Who Displayed Opposite", question: "When they showed those despised traits, who else (including you) showed the OPPOSITE at the same time?", requires_who_where_when: true, side: 'B' },
-  { number: 14, title: "Drawbacks If Opposite", question: "What would have been the DRAWBACKS to you if they had shown the opposite traits instead?", requires_who_where_when: false, side: 'B' },
+  { number: 9, title: "Times You Showed Same Trait", question: "List times YOU displayed the same trait. For each, add who/where/when. At least 25 items.", target_count: 25, requires_who_where_when: true, side: 'B' },
+  { number: 10, title: "Benefits to You", question: "Think of moments they showed that disliked trait. What were the BENEFITS or upsides to YOU? At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'B' },
+  { number: 11, title: "Benefits to Others", question: "What were the BENEFITS to others when you displayed that same trait? At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'B' },
+  { number: 12, title: "Opposite Traits They Displayed", question: "List evidence of the OPPOSITE traits they also displayed in those situations. At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'B' },
+  { number: 13, title: "Who Displayed Opposite", question: "When they showed that despised trait, who else (including you) showed the OPPOSITE at the same time? At least 25 items.", target_count: 25, requires_who_where_when: true, side: 'B' },
+  { number: 14, title: "Drawbacks If Opposite", question: "What would have been the DRAWBACKS to you if they had shown the opposite traits instead? At least 25 items.", target_count: 25, requires_who_where_when: false, side: 'B' },
 ];
 
 export const DEMARTINI_COLUMNS_SIDE_C: { [key: string]: ColumnConfig[] } = {
