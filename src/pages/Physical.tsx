@@ -19,7 +19,7 @@ export default function Physical() {
   
   const [formData, setFormData] = useState<Partial<PhysicalLog>>({
     sleep: { hours: undefined, quality: 3 },
-      workout: { type: '', duration: undefined, intensity: 3, exercises: [] },
+    workout: { type: '', duration: undefined, intensity: 3, exercises: [] },
     weight: { value: 0 },
     energy: { level: 3 },
     caffeine: { cups: undefined },
@@ -71,7 +71,7 @@ export default function Physical() {
     const newExercise = {
       id: generateId(),
       name: '',
-      sets: 0
+      sets: []
     };
     
     setFormData(prev => ({
@@ -83,13 +83,61 @@ export default function Physical() {
     }));
   };
 
-  const updateExercise = (exerciseId: string, updates: { name?: string; sets?: number }) => {
+  const updateExercise = (exerciseId: string, updates: { name?: string; sets?: Array<{reps: number; weight?: number}> }) => {
     setFormData(prev => ({
       ...prev,
       workout: {
         ...prev.workout,
         exercises: prev.workout?.exercises?.map(exercise => 
           exercise.id === exerciseId ? { ...exercise, ...updates } : exercise
+        ) || []
+      }
+    }));
+  };
+
+  const addSet = (exerciseId: string) => {
+    const newSet = { reps: 0, weight: undefined };
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId 
+            ? { ...exercise, sets: [...exercise.sets, newSet] }
+            : exercise
+        ) || []
+      }
+    }));
+  };
+
+  const updateSet = (exerciseId: string, setIndex: number, updates: { reps?: number; weight?: number }) => {
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId 
+            ? { 
+                ...exercise, 
+                sets: exercise.sets.map((set, index) => 
+                  index === setIndex ? { ...set, ...updates } : set
+                )
+              }
+            : exercise
+        ) || []
+      }
+    }));
+  };
+
+  const removeSet = (exerciseId: string, setIndex: number) => {
+    setFormData(prev => ({
+      ...prev,
+      workout: {
+        ...prev.workout,
+        exercises: prev.workout?.exercises?.map(exercise => 
+          exercise.id === exerciseId 
+            ? { ...exercise, sets: exercise.sets.filter((_, index) => index !== setIndex) }
+            : exercise
         ) || []
       }
     }));
@@ -203,7 +251,7 @@ export default function Physical() {
     setEditingLogId(null);
     setFormData({
       sleep: { quality: 3 },
-        workout: { intensity: 3, exercises: [] },
+      workout: { intensity: 3, exercises: [] },
       weight: { value: 0 },
       energy: { level: 3 },
       caffeine: {},
@@ -325,7 +373,7 @@ export default function Physical() {
               <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="basics">Basics</TabsTrigger>
                 <TabsTrigger value="meals">Meals</TabsTrigger>
-                <TabsTrigger value="notes">Notes</TabsTrigger>
+                <TabsTrigger value="workout">Workout</TabsTrigger>
               </TabsList>
 
               <TabsContent value="basics" className="space-y-4">
@@ -381,12 +429,210 @@ export default function Physical() {
                   </CardContent>
                 </Card>
 
-                {/* Workout */}
+                {/* Weight */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Scale className="h-4 w-4 text-green-500" />
+                      Weight
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <label className="text-sm font-medium">Weight (kg)</label>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        value={formData.weight?.value || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          weight: { ...prev.weight, value: parseFloat(e.target.value) || 0 }
+                        }))}
+                        placeholder="e.g., 75.5"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium">Weight Notes</label>
+                      <Input
+                        value={formData.weight?.notes || ''}
+                        onChange={(e) => setFormData(prev => ({
+                          ...prev,
+                          weight: { ...prev.weight, notes: e.target.value }
+                        }))}
+                        placeholder="Any notes about your weight?"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Energy & Caffeine */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-yellow-500" />
+                        Energy
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Energy Level: {getEnergyLabel(formData.energy?.level || 3)}
+                        </label>
+                        <Slider
+                          value={[formData.energy?.level || 3]}
+                          onValueChange={([value]) => setFormData(prev => ({
+                            ...prev,
+                            energy: { ...prev.energy, level: value }
+                          }))}
+                          max={5}
+                          min={1}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Coffee className="h-4 w-4 text-amber-600" />
+                        Caffeine
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div>
+                        <label className="text-sm font-medium">Cups of coffee</label>
+                        <Input
+                          type="number"
+                          value={formData.caffeine?.cups || ''}
+                          onChange={(e) => setFormData(prev => ({
+                            ...prev,
+                            caffeine: { ...prev.caffeine, cups: parseInt(e.target.value) || undefined }
+                          }))}
+                          placeholder="e.g., 2"
+                          min="0"
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Notes */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Notes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      value={formData.notes || ''}
+                      onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                      placeholder="Any additional notes about your day..."
+                      rows={3}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="meals" className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold">Meals & Nutrition</h3>
+                  <Button onClick={addMeal} size="sm" variant="outline" className="flex items-center gap-2">
+                    <Plus size={16} />
+                    Add Meal
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {formData.meals?.map((meal, index) => (
+                    <Card key={meal.id} className="border-l-4 border-l-purple-500/50">
+                      <CardContent className="pt-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm font-medium">Meal {index + 1}</span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeMeal(meal.id)}
+                            className="h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-medium">Time</label>
+                            <Input
+                              type="time"
+                              value={meal.time}
+                              onChange={(e) => updateMeal(meal.id, { time: e.target.value })}
+                            />
+                          </div>
+                          <div>
+                            <label className="text-xs font-medium">Type</label>
+                            <select
+                              value={meal.type}
+                              onChange={(e) => updateMeal(meal.id, { type: e.target.value as any })}
+                              className="w-full px-3 py-2 text-sm border border-input rounded-md"
+                            >
+                              <option value="breakfast">Breakfast</option>
+                              <option value="lunch">Lunch</option>
+                              <option value="dinner">Dinner</option>
+                              <option value="snack">Snack</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium">Description</label>
+                          <Input
+                            value={meal.description}
+                            onChange={(e) => updateMeal(meal.id, { description: e.target.value })}
+                            placeholder="What did you eat?"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-medium">Calories (optional)</label>
+                          <Input
+                            type="number"
+                            value={meal.calories || ''}
+                            onChange={(e) => updateMeal(meal.id, { calories: parseInt(e.target.value) || undefined })}
+                            placeholder="e.g., 350"
+                            min="0"
+                          />
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+
+                  {formData.meals?.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Utensils size={40} className="mx-auto mb-3" />
+                      <p>No meals added yet. Click "Add Meal" to get started.</p>
+                    </div>
+                  )}
+                </div>
+
+                {formData.meals?.length > 0 && (
+                  <Card className="bg-accent/10">
+                    <CardContent className="pt-6">
+                      <div className="text-center">
+                        <h4 className="font-semibold text-lg">Total Calories</h4>
+                        <p className="text-2xl font-bold text-primary">{calculateTotalCalories()}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </TabsContent>
+
+              <TabsContent value="workout" className="space-y-4">
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base flex items-center gap-2">
                       <Dumbbell className="h-4 w-4 text-orange-500" />
-                      Workout
+                      Workout Details
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -433,278 +679,162 @@ export default function Physical() {
                       />
                     </div>
 
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Exercises</label>
-                        <Button onClick={addExercise} size="sm" variant="outline" className="flex items-center gap-1">
-                          <Plus size={14} />
-                          Add Exercise
-                        </Button>
-                      </div>
-                      
-                      {formData.workout?.exercises?.map((exercise, exerciseIndex) => (
-                        <Card key={exercise.id} className="border-l-4 border-l-orange-500/50">
-                          <CardContent className="pt-4 space-y-3">
-                             <div className="grid grid-cols-3 gap-2 items-center">
-                               <div className="col-span-2">
-                                 <label className="text-xs font-medium">Exercise</label>
-                                 <Input
-                                   value={exercise.name}
-                                   onChange={(e) => updateExercise(exercise.id, { name: e.target.value })}
-                                   placeholder="Exercise name (e.g., Bench Press, Squats)"
-                                 />
-                               </div>
-                               <div>
-                                 <label className="text-xs font-medium">Sets</label>
-                                 <div className="flex gap-1">
-                                   <Input
-                                     type="number"
-                                     value={exercise.sets || ''}
-                                     onChange={(e) => updateExercise(exercise.id, { sets: parseInt(e.target.value) || 0 })}
-                                     placeholder="0"
-                                     min="0"
-                                   />
-                                   <Button
-                                     variant="ghost"
-                                     size="sm"
-                                     onClick={() => removeExercise(exercise.id)}
-                                   >
-                                     <Trash2 size={14} />
-                                   </Button>
-                                 </div>
-                               </div>
-                             </div>
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                    
                     <div>
                       <label className="text-sm font-medium">Workout Notes</label>
-                      <Input
+                      <Textarea
                         value={formData.workout?.notes || ''}
                         onChange={(e) => setFormData(prev => ({
                           ...prev,
                           workout: { ...prev.workout, notes: e.target.value }
                         }))}
-                        placeholder="How did it go? Personal records?"
+                        placeholder="How was your workout? Any notes?"
+                        rows={2}
                       />
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Weight & Other Metrics */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Scale className="h-4 w-4 text-green-500" />
-                        Weight
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium">Weight (kg)</label>
-                        <Input
-                          type="number"
-                          step="0.1"
-                          value={formData.weight?.value || ''}
-                          onChange={(e) => setFormData(prev => ({
-                            ...prev,
-                            weight: { ...prev.weight, value: parseFloat(e.target.value) || 0 }
-                          }))}
-                        />
-                      </div>
-                    </CardContent>
-                  </Card>
+                {/* Exercises */}
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold">Exercises</h3>
+                    <Button onClick={addExercise} size="sm" variant="outline" className="flex items-center gap-2">
+                      <Plus size={16} />
+                      Add Exercise
+                    </Button>
+                  </div>
 
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-yellow-500" />
-                        Energy
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <label className="text-sm font-medium mb-2 block">
-                        Energy Level: {getEnergyLabel(formData.energy?.level || 3)}
-                      </label>
-                      <Slider
-                        value={[formData.energy?.level || 3]}
-                        onValueChange={([value]) => setFormData(prev => ({
-                          ...prev,
-                          energy: { ...prev.energy, level: value }
-                        }))}
-                        max={5}
-                        min={1}
-                        step={1}
-                        className="w-full"
-                      />
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-base flex items-center gap-2">
-                        <Coffee className="h-4 w-4 text-amber-600" />
-                        Caffeine
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <label className="text-sm font-medium">Cups of coffee</label>
-                      <Input
-                        type="number"
-                        value={formData.caffeine?.cups || ''}
-                        onChange={(e) => setFormData(prev => ({
-                          ...prev,
-                          caffeine: { ...prev.caffeine, cups: parseInt(e.target.value) || undefined }
-                        }))}
-                        placeholder="0"
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="meals" className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">Meals & Nutrition</h3>
-                  <Button onClick={addMeal} size="sm" className="flex items-center gap-1">
-                    <Plus size={14} />
-                    Add Meal
-                  </Button>
-                </div>
-
-                <div className="space-y-3">
-                  {formData.meals?.map((meal, index) => (
-                    <Card key={meal.id} className="border-l-4 border-l-primary/50">
-                      <CardContent className="pt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
-                          <div>
-                            <label className="text-xs font-medium">Time</label>
+                  {formData.workout?.exercises?.map((exercise, exerciseIndex) => (
+                    <Card key={exercise.id} className="border-l-4 border-l-orange-500/50">
+                      <CardContent className="pt-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <label className="text-sm font-medium">Exercise Name</label>
                             <Input
-                              type="time"
-                              value={meal.time}
-                              onChange={(e) => updateMeal(meal.id, { time: e.target.value })}
+                              value={exercise.name}
+                              onChange={(e) => updateExercise(exercise.id, { name: e.target.value })}
+                              placeholder="e.g., Bench Press, Squats, Push-ups"
                             />
                           </div>
-                          <div>
-                            <label className="text-xs font-medium">Type</label>
-                            <select
-                              value={meal.type}
-                              onChange={(e) => updateMeal(meal.id, { type: e.target.value as any })}
-                              className="w-full px-3 py-2 text-sm border border-input rounded-md bg-background"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeExercise(exercise.id)}
+                            className="ml-2 h-8 w-8 p-0 text-destructive hover:text-destructive"
+                          >
+                            <Trash2 size={14} />
+                          </Button>
+                        </div>
+
+                        {/* Sets */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium">Sets & Reps</label>
+                            <Button 
+                              onClick={() => addSet(exercise.id)} 
+                              size="sm" 
+                              variant="outline"
+                              className="flex items-center gap-1"
                             >
-                              <option value="breakfast">Breakfast</option>
-                              <option value="lunch">Lunch</option>
-                              <option value="dinner">Dinner</option>
-                              <option value="snack">Snack</option>
-                            </select>
-                          </div>
-                          <div className="md:col-span-2">
-                            <label className="text-xs font-medium">Description</label>
-                            <Input
-                              value={meal.description}
-                              onChange={(e) => updateMeal(meal.id, { description: e.target.value })}
-                              placeholder="What did you eat?"
-                            />
-                          </div>
-                          <div className="flex gap-2">
-                            <div className="flex-1">
-                              <label className="text-xs font-medium">Calories</label>
-                              <Input
-                                type="number"
-                                value={meal.calories || ''}
-                                onChange={(e) => updateMeal(meal.id, { calories: parseInt(e.target.value) || undefined })}
-                                placeholder="0"
-                              />
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => removeMeal(meal.id)}
-                              className="mt-auto"
-                            >
-                              <Trash2 size={14} />
+                              <Plus size={12} />
+                              Add Set
                             </Button>
                           </div>
+
+                          {exercise.sets.map((set, setIndex) => (
+                            <div key={setIndex} className="flex items-center gap-2 p-2 bg-muted/50 rounded">
+                              <span className="text-sm font-medium w-12">Set {setIndex + 1}:</span>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  type="number"
+                                  value={set.reps || ''}
+                                  onChange={(e) => updateSet(exercise.id, setIndex, { reps: parseInt(e.target.value) || 0 })}
+                                  placeholder="Reps"
+                                  className="w-20"
+                                  min="0"
+                                />
+                                <span className="text-sm text-muted-foreground">reps</span>
+                                <Input
+                                  type="number"
+                                  step="0.5"
+                                  value={set.weight || ''}
+                                  onChange={(e) => updateSet(exercise.id, setIndex, { weight: parseFloat(e.target.value) || undefined })}
+                                  placeholder="Weight"
+                                  className="w-24"
+                                  min="0"
+                                />
+                                <span className="text-sm text-muted-foreground">kg</span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeSet(exercise.id, setIndex)}
+                                  className="h-6 w-6 p-0 text-destructive hover:text-destructive"
+                                >
+                                  <X size={12} />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+
+                          {exercise.sets.length === 0 && (
+                            <div className="text-center py-4 text-muted-foreground text-sm">
+                              No sets added. Click "Add Set" to track your performance.
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                     </Card>
                   ))}
-                </div>
 
-                {formData.meals && formData.meals.length > 0 && (
-                  <Card className="bg-muted/30">
-                    <CardContent className="pt-4">
-                      <div className="text-center">
-                        <div className="text-2xl font-bold text-primary">
-                          {calculateTotalCalories()} calories
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          Total from {formData.meals.length} meal{formData.meals.length !== 1 ? 's' : ''}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </TabsContent>
-
-              <TabsContent value="notes">
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Daily Notes</label>
-                  <Textarea
-                    value={formData.notes || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    placeholder="How are you feeling? Any observations about your health, energy, or habits today?"
-                    rows={6}
-                  />
+                  {formData.workout?.exercises?.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Dumbbell size={40} className="mx-auto mb-3" />
+                      <p>No exercises added yet. Click "Add Exercise" to get started.</p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
 
-            <div className="flex gap-2 pt-4 border-t">
-              <Button onClick={saveLog} className="flex items-center gap-2">
-                <Save size={16} />
-                {editingLogId ? 'Update' : 'Create'} Log
-              </Button>
+            <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={cancelForm}>
                 Cancel
+              </Button>
+              <Button onClick={saveLog} className="flex items-center gap-2">
+                <Save size={16} />
+                {editingLogId ? 'Update Log' : 'Save Log'}
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Previous Logs */}
+      {/* Historical Logs */}
       <div className="space-y-4">
-        <h2 className="text-xl font-semibold text-foreground">Previous Logs</h2>
+        <h2 className="text-xl font-semibold">Previous Logs</h2>
         
-        {logs.length === 0 ? (
+        {logs.filter(log => !isToday(log.date)).length === 0 ? (
           <Card>
-            <CardContent className="pt-12">
-              <div className="text-center">
-                <Activity size={48} className="mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium text-foreground mb-2">No logs yet</h3>
-                <p className="text-muted-foreground">Start tracking your daily physical activities and health metrics.</p>
-              </div>
+            <CardContent className="text-center py-12">
+              <Activity size={40} className="mx-auto text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No previous logs</h3>
+              <p className="text-muted-foreground">Your workout and daily logs will appear here.</p>
             </CardContent>
           </Card>
         ) : (
-          logs.map((log) => (
-            <Card key={log.id} className={isToday(log.date) ? "border-primary/50 bg-primary/5" : ""}>
+          logs.filter(log => !isToday(log.date)).map((log) => (
+            <Card key={log.id} className="hover:shadow-md transition-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-5 w-5" />
                     {formatDate(log.date)}
-                    {isToday(log.date) && <Badge variant="secondary">Today</Badge>}
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
                     onClick={() => createOrEditLog(log)}
-                    className="flex items-center gap-1"
+                    className="flex items-center gap-2"
                   >
                     <Edit3 size={14} />
                     Edit
@@ -712,92 +842,52 @@ export default function Physical() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                   {log.sleep?.hours && (
-                    <div className="flex items-center gap-3 p-3 bg-blue-50 dark:bg-blue-950/30 rounded-lg">
-                      <Moon className="h-5 w-5 text-blue-500" />
-                      <div>
-                        <div className="font-medium">{log.sleep.hours}h sleep</div>
-                        <div className="text-xs text-muted-foreground">{getQualityLabel(log.sleep.quality || 3)}</div>
-                      </div>
+                    <div className="text-center p-2 bg-accent/10 rounded">
+                      <Moon className="h-5 w-5 mx-auto text-blue-500 mb-1" />
+                      <div className="text-sm font-medium">{log.sleep.hours}h</div>
+                      <div className="text-xs text-muted-foreground">Sleep</div>
                     </div>
                   )}
                   
-                  {log.workout?.type && (
-                    <div className="flex items-center gap-3 p-3 bg-orange-50 dark:bg-orange-950/30 rounded-lg">
-                      <Dumbbell className="h-5 w-5 text-orange-500" />
-                      <div>
-                        <div className="font-medium">{log.workout.type}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {log.workout.duration && `${log.workout.duration}min • `}{getIntensityLabel(log.workout.intensity || 3)}
-                          {log.workout.exercises && log.workout.exercises.length > 0 && ` • ${log.workout.exercises.length} exercises`}
-                        </div>
-                      </div>
+                  {log.workout?.exercises && log.workout.exercises.length > 0 && (
+                    <div className="text-center p-2 bg-accent/10 rounded">
+                      <Dumbbell className="h-5 w-5 mx-auto text-orange-500 mb-1" />
+                      <div className="text-sm font-medium">{log.workout.exercises.length}</div>
+                      <div className="text-xs text-muted-foreground">Exercises</div>
                     </div>
                   )}
                   
                   {log.weight?.value && (
-                    <div className="flex items-center gap-3 p-3 bg-green-50 dark:bg-green-950/30 rounded-lg">
-                      <Scale className="h-5 w-5 text-green-500" />
-                      <div>
-                        <div className="font-medium">{log.weight.value}kg</div>
-                      </div>
+                    <div className="text-center p-2 bg-accent/10 rounded">
+                      <Scale className="h-5 w-5 mx-auto text-green-500 mb-1" />
+                      <div className="text-sm font-medium">{log.weight.value}kg</div>
+                      <div className="text-xs text-muted-foreground">Weight</div>
                     </div>
                   )}
                   
                   {log.totalCalories && (
-                    <div className="flex items-center gap-3 p-3 bg-purple-50 dark:bg-purple-950/30 rounded-lg">
-                      <Utensils className="h-5 w-5 text-purple-500" />
-                      <div>
-                        <div className="font-medium">{log.totalCalories} cal</div>
-                        <div className="text-xs text-muted-foreground">
-                          {log.meals?.length || 0} meal{(log.meals?.length || 0) !== 1 ? 's' : ''}
-                        </div>
-                      </div>
+                    <div className="text-center p-2 bg-accent/10 rounded">
+                      <Utensils className="h-5 w-5 mx-auto text-purple-500 mb-1" />
+                      <div className="text-sm font-medium">{log.totalCalories}</div>
+                      <div className="text-xs text-muted-foreground">Calories</div>
                     </div>
                   )}
                 </div>
 
                 {log.workout?.exercises && log.workout.exercises.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Dumbbell className="h-4 w-4" />
-                      Exercises
-                    </h4>
+                  <div className="border-t pt-4">
+                    <h4 className="font-medium mb-2">Workout Summary</h4>
                     <div className="space-y-2">
                       {log.workout.exercises.map((exercise) => (
-                        <div key={exercise.id} className="p-3 bg-muted/30 rounded-md">
-                           <div className="font-medium text-sm mb-2">{exercise.name}</div>
-                           {exercise.sets > 0 && (
-                             <div className="text-xs text-muted-foreground">
-                               {exercise.sets} sets performed
-                             </div>
-                           )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {log.meals && log.meals.length > 0 && (
-                  <div className="space-y-2 mb-4">
-                    <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
-                      <Utensils className="h-4 w-4" />
-                      Meals
-                    </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      {log.meals.map((meal) => (
-                        <div key={meal.id} className="flex items-center gap-3 p-2 bg-muted/30 rounded-md">
-                          <span className="text-lg">{getMealTypeIcon(meal.type)}</span>
-                          <div className="flex-1">
-                            <div className="text-sm font-medium">
-                              {meal.time} • {meal.type}
-                            </div>
-                            <div className="text-xs text-muted-foreground">
-                              {meal.description}
-                              {meal.calories && ` • ${meal.calories} cal`}
-                            </div>
-                          </div>
+                        <div key={exercise.id} className="text-sm">
+                          <span className="font-medium">{exercise.name}</span>
+                          {exercise.sets.length > 0 && (
+                            <span className="text-muted-foreground ml-2">
+                              ({exercise.sets.length} sets)
+                            </span>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -805,8 +895,8 @@ export default function Physical() {
                 )}
 
                 {log.notes && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="text-sm font-medium text-foreground mb-2">Notes</h4>
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="font-medium mb-2">Notes</h4>
                     <p className="text-sm text-muted-foreground">{log.notes}</p>
                   </div>
                 )}
