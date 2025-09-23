@@ -310,7 +310,7 @@ export default function Reading() {
       {/* Reading List */}
       <div className="grid grid-cols-1 gap-6">
         {/* Books */}
-        <div className="space-y-3 md:space-y-4">
+        <div className="space-y-6 md:space-y-8">
           <h2 className="text-lg md:text-xl font-semibold text-foreground">Books</h2>
           
           {items.length === 0 ? (
@@ -325,12 +325,12 @@ export default function Reading() {
             items.map((item) => (
               <NotebookPage key={item.id}>
                 <Card className="border-0 bg-transparent shadow-none mobile-card">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                  <CardHeader className="pb-6 pt-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
-                        <CardTitle className="text-foreground text-base md:text-lg line-clamp-2">{item.title}</CardTitle>
+                        <CardTitle className="text-foreground text-lg md:text-xl line-clamp-2 mb-2">{item.title}</CardTitle>
                         {item.author && (
-                          <p className="text-muted-foreground text-sm mt-1 line-clamp-1">by {item.author}</p>
+                          <p className="text-muted-foreground text-base mt-2 line-clamp-1">by {item.author}</p>
                         )}
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
@@ -376,8 +376,8 @@ export default function Reading() {
                     )}
                   </CardHeader>
                   
-                  <CardContent className="pt-0">
-                    <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                  <CardContent className="pt-2 pb-6">
+                    <div className="flex flex-col sm:flex-row gap-3 mb-6">
                       <Select value={item.status} onValueChange={(value: ReadingItem['status']) => updateBookStatus(item.id, value)}>
                         <SelectTrigger className="w-full sm:w-32">
                           <SelectValue />
