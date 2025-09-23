@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { AlertTriangle, Save, Download } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemartiniColumn as DemartiniColumnComponent } from './DemartiniColumn';
+import { DemartiniSideSelector } from './DemartiniSideSelector';
 import { 
   DemartiniSession, 
   DEMARTINI_COLUMNS, 
@@ -21,8 +21,8 @@ export function DemartiniGuide() {
   const [sessions, setSessions] = useState<DemartiniSession[]>([]);
   const [currentSession, setCurrentSession] = useState<DemartiniSession | null>(null);
   const [showNewSession, setShowNewSession] = useState(false);
+  const [showSideSelector, setShowSideSelector] = useState(false);
   const [newSessionTitle, setNewSessionTitle] = useState('');
-  const [sideCMode, setSideCMode] = useState<'self' | 'relief' | 'grief'>('self');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -42,6 +42,7 @@ export function DemartiniGuide() {
       const formattedSessions: DemartiniSession[] = data?.map(doc => ({
         id: doc.id,
         title: doc.title,
+        selected_side: (doc.data as any)?.selected_side || 'A',
         side_c_mode: doc.side_c_mode as 'self' | 'relief' | 'grief',
         columns: (doc.data as any)?.columns || {},
         progress: (doc.progress as any) || { current_column: 1, completed_columns: [] },
@@ -57,7 +58,7 @@ export function DemartiniGuide() {
     }
   };
 
-  const createNewSession = async () => {
+  const handleSideSelection = async (selectedSide: 'A' | 'B' | 'C', sideCMode?: 'self' | 'relief' | 'grief') => {
     if (!newSessionTitle.trim()) {
       toast.error('Please enter a session title');
       return;
@@ -67,9 +68,10 @@ export function DemartiniGuide() {
     try {
       const newSession: Partial<DemartiniSession> = {
         title: newSessionTitle.trim(),
+        selected_side: selectedSide,
         side_c_mode: sideCMode,
         columns: {},
-        progress: { current_column: 1, completed_columns: [] },
+        progress: { current_column: getFirstColumnForSide(selectedSide), completed_columns: [] },
       };
 
       const { data, error } = await supabase
@@ -77,7 +79,10 @@ export function DemartiniGuide() {
         .insert({
           title: newSession.title!,
           side_c_mode: newSession.side_c_mode,
-          data: { columns: newSession.columns } as any,
+          data: { 
+            columns: newSession.columns,
+            selected_side: newSession.selected_side 
+          } as any,
           progress: newSession.progress as any,
           user_id: '00000000-0000-0000-0000-000000000001',
         })
@@ -89,15 +94,17 @@ export function DemartiniGuide() {
       const createdSession: DemartiniSession = {
         id: data.id,
         title: data.title,
+        selected_side: selectedSide,
         side_c_mode: data.side_c_mode as 'self' | 'relief' | 'grief',
         columns: (data.data as any)?.columns || {},
-        progress: (data.progress as any) || { current_column: 1, completed_columns: [] },
+        progress: (data.progress as any) || { current_column: getFirstColumnForSide(selectedSide), completed_columns: [] },
         created_at: data.created_at,
         updated_at: data.updated_at,
       };
 
       setSessions(prev => [createdSession, ...prev]);
       setCurrentSession(createdSession);
+      setShowSideSelector(false);
       setShowNewSession(false);
       setNewSessionTitle('');
       toast.success('New session created');
@@ -108,12 +115,22 @@ export function DemartiniGuide() {
     }
   };
 
+  const getFirstColumnForSide = (side: 'A' | 'B' | 'C'): number => {
+    if (side === 'A') return 1;
+    if (side === 'B') return 8;
+    if (side === 'C') return 15;
+    return 1;
+  };
+
   const saveSession = async (session: DemartiniSession) => {
     try {
       const { error } = await supabase
         .from('demartini_docs')
         .update({
-          data: { columns: session.columns } as any,
+          data: { 
+            columns: session.columns,
+            selected_side: session.selected_side 
+          } as any,
           progress: session.progress as any,
         })
         .eq('id', session.id);
@@ -127,21 +144,28 @@ export function DemartiniGuide() {
     }
   };
 
-  const getAllColumns = (mode?: string): ColumnConfig[] => {
+  const getAllColumns = (selectedSide: 'A' | 'B' | 'C', mode?: string): ColumnConfig[] => {
     const baseColumns = DEMARTINI_COLUMNS;
-    if (!mode) return baseColumns;
     
-    const sideCColumns = DEMARTINI_COLUMNS_SIDE_C[mode] || [];
-    return [...baseColumns, ...sideCColumns];
+    if (selectedSide === 'A') {
+      return baseColumns.filter(col => col.side === 'A');
+    } else if (selectedSide === 'B') {
+      return baseColumns.filter(col => col.side === 'B');
+    } else if (selectedSide === 'C' && mode) {
+      const sideCColumns = DEMARTINI_COLUMNS_SIDE_C[mode] || [];
+      return sideCColumns;
+    }
+    
+    return baseColumns;
   };
 
   const getCurrentColumn = (session: DemartiniSession): ColumnConfig | null => {
-    const allColumns = getAllColumns(session.side_c_mode);
+    const allColumns = getAllColumns(session.selected_side, session.side_c_mode);
     return allColumns.find(col => col.number === session.progress.current_column) || null;
   };
 
   const getProgress = (session: DemartiniSession): number => {
-    const allColumns = getAllColumns(session.side_c_mode);
+    const allColumns = getAllColumns(session.selected_side, session.side_c_mode);
     return (session.progress.completed_columns.length / allColumns.length) * 100;
   };
 
@@ -149,6 +173,7 @@ export function DemartiniGuide() {
     const exportData = {
       title: session.title,
       created_at: session.created_at,
+      selected_side: session.selected_side,
       side_c_mode: session.side_c_mode,
       columns: session.columns,
       progress: session.progress,
@@ -173,6 +198,21 @@ export function DemartiniGuide() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Loading sessions...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (showSideSelector) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <DemartiniSideSelector
+          onSideSelected={handleSideSelection}
+          onCancel={() => {
+            setShowSideSelector(false);
+            setShowNewSession(false);
+            setNewSessionTitle('');
+          }}
+        />
       </div>
     );
   }
@@ -211,7 +251,8 @@ export function DemartiniGuide() {
                     <div>
                       <h3 className="font-medium">{session.title}</h3>
                       <p className="text-sm text-muted-foreground">
-                        Mode: {session.side_c_mode?.toUpperCase()} • {Math.round(getProgress(session))}% complete
+                        Side {session.selected_side}
+                        {session.side_c_mode && ` (${session.side_c_mode.toUpperCase()})`} • {Math.round(getProgress(session))}% complete
                       </p>
                       <p className="text-xs text-muted-foreground">
                         Updated: {new Date(session.updated_at).toLocaleDateString()}
@@ -252,24 +293,23 @@ export function DemartiniGuide() {
                         placeholder="e.g., 'Reflection on Mom', 'Work Conflict with John'"
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="sideC">Side C Mode</Label>
-                      <Select value={sideCMode} onValueChange={(value: 'self' | 'relief' | 'grief') => setSideCMode(value)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="self">Self (trait changes in yourself)</SelectItem>
-                          <SelectItem value="relief">Relief (new person arrives)</SelectItem>
-                          <SelectItem value="grief">Grief (person leaves)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
                     <div className="flex gap-2">
-                      <Button onClick={createNewSession} disabled={loading}>
-                        Create Session
+                      <Button 
+                        onClick={() => {
+                          if (newSessionTitle.trim()) {
+                            setShowSideSelector(true);
+                          } else {
+                            toast.error('Please enter a session title first');
+                          }
+                        }} 
+                        disabled={loading}
+                      >
+                        Next: Choose Your Focus
                       </Button>
-                      <Button variant="outline" onClick={() => setShowNewSession(false)}>
+                      <Button variant="outline" onClick={() => {
+                        setShowNewSession(false);
+                        setNewSessionTitle('');
+                      }}>
                         Cancel
                       </Button>
                     </div>
@@ -284,7 +324,7 @@ export function DemartiniGuide() {
   }
 
   const currentColumn = getCurrentColumn(currentSession);
-  const allColumns = getAllColumns(currentSession.side_c_mode);
+  const allColumns = getAllColumns(currentSession.selected_side, currentSession.side_c_mode);
   const progress = getProgress(currentSession);
 
   return (
@@ -294,7 +334,9 @@ export function DemartiniGuide() {
           <div>
             <h1 className="text-2xl font-bold">{currentSession.title}</h1>
             <p className="text-muted-foreground">
-              Mode: {currentSession.side_c_mode?.toUpperCase()} • Column {currentSession.progress.current_column} of {allColumns.length}
+              Side {currentSession.selected_side}
+              {currentSession.side_c_mode && ` (${currentSession.side_c_mode.toUpperCase()})`} • 
+              Column {currentSession.progress.current_column} of {allColumns.length}
             </p>
           </div>
           <div className="flex gap-2">
@@ -333,30 +375,35 @@ export function DemartiniGuide() {
             saveSession(updatedSession);
           }}
           onNextColumn={() => {
-            const nextColumnNumber = currentSession.progress.current_column + 1;
-            const nextColumn = allColumns.find(col => col.number === nextColumnNumber);
+            const currentColumns = getAllColumns(currentSession.selected_side, currentSession.side_c_mode);
+            const currentIndex = currentColumns.findIndex(col => col.number === currentSession.progress.current_column);
+            const nextColumn = currentColumns[currentIndex + 1];
             
             if (nextColumn) {
               const updatedSession = {
                 ...currentSession,
                 progress: {
                   ...currentSession.progress,
-                  current_column: nextColumnNumber,
+                  current_column: nextColumn.number,
                 },
               };
               setCurrentSession(updatedSession);
               saveSession(updatedSession);
             } else {
-              toast.success('Congratulations! You have completed all columns.');
+              toast.success('Congratulations! You have completed all columns for this side.');
             }
           }}
           onPreviousColumn={() => {
-            if (currentSession.progress.current_column > 1) {
+            const currentColumns = getAllColumns(currentSession.selected_side, currentSession.side_c_mode);
+            const currentIndex = currentColumns.findIndex(col => col.number === currentSession.progress.current_column);
+            const previousColumn = currentColumns[currentIndex - 1];
+            
+            if (previousColumn) {
               const updatedSession = {
                 ...currentSession,
                 progress: {
                   ...currentSession.progress,
-                  current_column: currentSession.progress.current_column - 1,
+                  current_column: previousColumn.number,
                 },
               };
               setCurrentSession(updatedSession);

@@ -24,6 +24,7 @@ export interface DemartiniColumn {
 export interface DemartiniSession {
   id: string;
   title: string;
+  selected_side: 'A' | 'B' | 'C';
   side_c_mode?: 'self' | 'relief' | 'grief';
   columns: { [key: string]: DemartiniColumn };
   progress: {
