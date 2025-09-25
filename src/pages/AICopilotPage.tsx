@@ -3,7 +3,7 @@ import AICopilot from '@/components/AICopilot';
 
 const AICopilotPage = () => {
   return (
-    <div className="container mx-auto py-6">
+    <div className="h-screen w-full">
       <AICopilot />
     </div>
   );
