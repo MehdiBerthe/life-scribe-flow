@@ -58,7 +58,7 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
       
       // Connect to WebSocket
       const projectId = 'gqwymmauiijshudgstva';
-      wsRef.current = new WebSocket(`wss://${projectId}.functions.supabase.co/realtime-chat`);
+      wsRef.current = new WebSocket(`wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-chat`);
       
       wsRef.current.onopen = () => {
         console.log('WebSocket connected');

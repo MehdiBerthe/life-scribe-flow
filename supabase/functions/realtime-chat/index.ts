@@ -6,15 +6,15 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
   const { headers } = req;
   const upgradeHeader = headers.get("upgrade") || "";
 
   if (upgradeHeader.toLowerCase() !== "websocket") {
     return new Response("Expected WebSocket connection", { status: 400 });
-  }
-
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
   }
 
   const { socket, response } = Deno.upgradeWebSocket(req);
@@ -25,7 +25,19 @@ serve(async (req) => {
     console.log("Client WebSocket connected");
     
     // Connect to OpenAI Realtime API
-    openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01");
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      console.error("OpenAI API key not found");
+      socket.close();
+      return;
+    }
+    
+    openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", {
+      headers: {
+        "Authorization": `Bearer ${openAIApiKey}`,
+        "OpenAI-Beta": "realtime=v1"
+      }
+    });
 
     openAISocket.onopen = () => {
       console.log("Connected to OpenAI Realtime API");
