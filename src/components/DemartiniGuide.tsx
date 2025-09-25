@@ -4,8 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { AlertTriangle, Save, Download, Trash2 } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Save, Download, Trash2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { DemartiniColumn as DemartiniColumnComponent } from './DemartiniColumn';
@@ -255,13 +254,6 @@ export function DemartiniGuide() {
           </p>
         </div>
 
-        <Alert className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            This is a personal development tool. If you experience thoughts of self-harm during this process, 
-            please reach out to a mental health professional immediately.
-          </AlertDescription>
-        </Alert>
 
         <div className="grid gap-6">
           <Card>
