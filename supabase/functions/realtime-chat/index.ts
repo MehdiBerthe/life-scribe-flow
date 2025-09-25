@@ -25,12 +25,7 @@ serve(async (req) => {
     console.log("Client WebSocket connected");
     
     // Connect to OpenAI Realtime API
-    openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", [], {
-      headers: {
-        "Authorization": `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        "OpenAI-Beta": "realtime=v1"
-      }
-    });
+    openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01");
 
     openAISocket.onopen = () => {
       console.log("Connected to OpenAI Realtime API");
@@ -58,7 +53,9 @@ serve(async (req) => {
         }
       };
       
-      openAISocket.send(JSON.stringify(sessionConfig));
+      if (openAISocket) {
+        openAISocket.send(JSON.stringify(sessionConfig));
+      }
     };
 
     openAISocket.onmessage = (event) => {

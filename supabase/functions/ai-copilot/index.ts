@@ -380,17 +380,18 @@ async function triggerN8nWorkflow(params: any) {
     };
   } catch (fetchError) {
     // Update action status to failed but don't throw - allow fallback
+    const errorMessage = fetchError instanceof Error ? fetchError.message : String(fetchError);
     await supabase
       .from('ai_actions')
       .update({ 
         status: 'failed',
-        action_data: { ...payload, error: fetchError.message }
+        action_data: { ...payload, error: errorMessage }
       })
       .eq('id', actionLog.id);
 
     return { 
       success: false, 
-      message: `n8n workflow trigger failed: ${fetchError.message}. Action logged for manual processing.`,
+      message: `n8n workflow trigger failed: ${errorMessage}. Action logged for manual processing.`,
       action_id: actionLog.id,
       fallback: true
     };
@@ -783,8 +784,9 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('AI Co-Pilot error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ 
-      error: error.message,
+      error: errorMessage,
       message: "I'm sorry, I encountered an error. Please try again."
     }), {
       status: 500,

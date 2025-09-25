@@ -260,9 +260,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Daily digest error:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({ 
-      error: error.message,
-      success: false 
+      error: errorMessage,
+      success: false
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

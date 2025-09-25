@@ -128,16 +128,16 @@ async function enforceTokenBudgets(
   
   if (ragResults.length > 0) {
     // Sort by score and track top score
-    const sortedResults = ragResults.sort((a, b) => (b.score || 0) - (a.score || 0));
+    const sortedResults = ragResults.sort((a: any, b: any) => (b.score || 0) - (a.score || 0));
     topScore = sortedResults[0]?.score || 0;
     
     // Build memory context
-    const snippets = sortedResults.map((item, index) => ({
+    const snippets = sortedResults.map((item: any, index: number) => ({
       id: index,
       content: `[${item.kind}] ${item.title || ''}: ${item.content} (score: ${item.score?.toFixed(2)})`
     }));
     
-    const initialMemoryText = snippets.map(s => s.content).join('\n\n');
+    const initialMemoryText = snippets.map((s: any) => s.content).join('\n\n');
     const initialTokens = estimateTokens(initialMemoryText);
     
     if (initialTokens > TOKEN_BUDGETS.MEMORY) {
@@ -147,7 +147,7 @@ async function enforceTokenBudgets(
       const targetTokensPerItem = Math.floor(TOKEN_BUDGETS.MEMORY / snippets.length);
       const compressedSnippets = await compressSnippets(snippets, targetTokensPerItem);
       
-      let compressedText = compressedSnippets.map(s => s.text).join('\n\n');
+      let compressedText = compressedSnippets.map((s: any) => s.text).join('\n\n');
       let compressedTokens = estimateTokens(compressedText);
       
       // If still over budget, drop lowest-ranked items
@@ -269,7 +269,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('LLM middleware error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

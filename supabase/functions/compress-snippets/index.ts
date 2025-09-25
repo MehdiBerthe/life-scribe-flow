@@ -68,9 +68,10 @@ serve(async (req) => {
         };
       } catch (error) {
         console.error(`Error compressing snippet ${snippet.id}:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
         return {
           id: snippet.id,
-          text: `Error: ${error.message}`
+          text: `Error: ${errorMessage}`
         };
       }
     });
@@ -85,7 +86,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Compress snippets error:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    return new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
