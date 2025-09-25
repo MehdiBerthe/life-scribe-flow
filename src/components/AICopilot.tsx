@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Input } from '@/components/ui/input';
-import { Send, Mic, MicOff, Sparkles, User, Loader2 } from 'lucide-react';
+import { Send, Mic, MicOff, Sparkles, User, Loader2, Radio } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import VoiceMode from './VoiceMode';
 
 export interface Message {
   id: string;
@@ -28,6 +29,7 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [isVoiceMode, setIsVoiceMode] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -224,21 +226,34 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
   };
 
   return (
-    <div className={`h-full w-full flex flex-col bg-background ${className || ''}`}>
-      {/* Welcome Message - only show when no messages */}
-      {messages.length === 0 && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
-              <Sparkles className="h-8 w-8 text-white" />
+    <>
+      {isVoiceMode && <VoiceMode onClose={() => setIsVoiceMode(false)} />}
+      
+      <div className={`h-full w-full flex flex-col bg-background ${className || ''}`}>
+        {/* Welcome Message - only show when no messages */}
+        {messages.length === 0 && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center space-y-6">
+              <div className="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg">
+                <Sparkles className="h-8 w-8 text-white" />
+              </div>
+              <h1 className="text-2xl font-semibold text-foreground">How can I help you today?</h1>
+              <p className="text-muted-foreground max-w-md">
+                I'm your AI assistant. Ask me anything or use voice mode for natural conversation.
+              </p>
+              
+              {/* Voice Mode Button */}
+              <Button
+                onClick={() => setIsVoiceMode(true)}
+                className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+                size="lg"
+              >
+                <Radio className="h-5 w-5 mr-2" />
+                Try Voice Mode
+              </Button>
             </div>
-            <h1 className="text-2xl font-semibold text-foreground">How can I help you today?</h1>
-            <p className="text-muted-foreground max-w-md">
-              I'm your AI assistant. Ask me anything or use the microphone to speak with me.
-            </p>
           </div>
-        </div>
-      )}
+        )}
 
       {/* Messages Area */}
       {messages.length > 0 && (
@@ -317,6 +332,17 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
             />
             
             <Button 
+              onClick={() => setIsVoiceMode(true)} 
+              disabled={isLoading} 
+              size="icon" 
+              variant="ghost"
+              className="h-10 w-10 rounded-full hover:bg-accent"
+              title="Voice Mode"
+            >
+              <Radio className="h-5 w-5" />
+            </Button>
+            
+            <Button 
               onClick={toggleRecording} 
               disabled={isLoading} 
               size="icon" 
@@ -326,6 +352,7 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
                   ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' 
                   : 'hover:bg-accent'
               }`}
+              title="Quick Voice Message"
             >
               {isRecording ? (
                 <MicOff className="h-5 w-5" />
@@ -358,6 +385,7 @@ export const AICopilot: React.FC<AICopilotProps> = ({ className }) => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 
