@@ -27,7 +27,7 @@ const navigation = [
   { name: 'Journal', href: '/journal', icon: PenTool },
   { name: 'Reading', href: '/reading', icon: BookOpen },
   // { name: 'Finance', href: '/finance', icon: DollarSign },
-  { name: 'Physical', href: '/physical', icon: Activity },
+  { name: 'Health', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
