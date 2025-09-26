@@ -25,7 +25,7 @@ const navigation = [
   { name: 'Self Coaching', href: '/demartini', icon: Brain },
   { name: 'Planning', href: '/planning', icon: Target },
   { name: 'Journal', href: '/journal', icon: PenTool },
-  { name: 'Reading', href: '/reading', icon: BookOpen },
+  { name: 'Learning', href: '/reading', icon: BookOpen },
   // { name: 'Finance', href: '/finance', icon: DollarSign },
   { name: 'Health', href: '/physical', icon: Activity },
   { name: 'Social CRM', href: '/social', icon: Users },
