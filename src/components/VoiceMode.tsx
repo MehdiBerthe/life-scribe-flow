@@ -69,7 +69,7 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
         wsRef.current = new WebSocket(`wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-chat`);
       }
       
-    wsRef.current.onopen = () => {
+      wsRef.current.onopen = () => {
         console.log('WebSocket connected successfully!');
         setIsConnected(true);
         setIsConnecting(false);
@@ -157,18 +157,15 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket connection failed. Trying alternative approach...');
+        console.error('WebSocket connection failed:', error);
         setIsConnecting(false);
+        setIsConnected(false);
         
-        // Try a different connection method
-        setTimeout(() => {
-          console.log("Retrying with different WebSocket URL...");
-          setIsConnecting(true);
-          
-          // Alternative connection without query params
-          wsRef.current = new WebSocket(`wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-chat`);
-          setupWebSocketEvents();
-        }, 1000);
+        toast({
+          title: "Connection Failed",
+          description: "Unable to connect to voice service",
+          variant: "destructive"
+        });
       };
 
       wsRef.current.onclose = () => {
@@ -176,9 +173,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
         setIsConnected(false);
         setIsConnecting(false);
       };
-
-      // Setup WebSocket event handlers
-      setupWebSocketEvents();
 
     } catch (error) {
       console.error('Failed to initialize voice mode:', error);
@@ -191,102 +185,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
     }
   };
 
-  const setupWebSocketEvents = () => {
-    if (!wsRef.current) return;
-    
-    wsRef.current.onopen = () => {
-      console.log('WebSocket connected successfully!');
-      setIsConnected(true);
-      setIsConnecting(false);
-      
-      toast({
-        title: "Connected",
-        description: "Voice service is ready!",
-      });
-      
-      startListening();
-    };
-
-    wsRef.current.onmessage = async (event) => {
-      const data = JSON.parse(event.data);
-      console.log('Received:', data.type, data);
-      
-      switch (data.type) {
-        case 'connection.test':
-          console.log('WebSocket connection test:', data.message);
-          break;
-          
-        case 'connection.ready':
-          console.log('OpenAI API verified:', data.message);
-          toast({
-            title: "Connection Ready",
-            description: "OpenAI API connection verified successfully"
-          });
-          break;
-          
-        case 'echo':
-          console.log('Echo received:', data.data);
-          break;
-          
-        case 'error':
-          console.error('Voice service error:', data.error);
-          toast({
-            title: "Voice Service Error",
-            description: data.error?.message || "An error occurred with the voice service",
-            variant: "destructive"
-          });
-          break;
-          
-        case 'session.created':
-          console.log('Session created');
-          break;
-          
-        case 'session.updated':
-          console.log('Session updated');
-          break;
-          
-        case 'input_audio_buffer.speech_started':
-          setIsListening(true);
-          break;
-          
-        case 'input_audio_buffer.speech_stopped':
-          setIsListening(false);
-          break;
-          
-        case 'response.audio.delta':
-          if (data.delta && audioContextRef.current) {
-            setIsSpeaking(true);
-            // Convert base64 to Uint8Array
-            const binaryString = atob(data.delta);
-            const bytes = new Uint8Array(binaryString.length);
-            for (let i = 0; i < binaryString.length; i++) {
-              bytes[i] = binaryString.charCodeAt(i);
-            }
-            await playAudioData(audioContextRef.current, bytes);
-          }
-          break;
-          
-        case 'response.audio.done':
-          setIsSpeaking(false);
-          setResponse('');
-          break;
-          
-        case 'response.audio_transcript.delta':
-          setResponse(prev => prev + (data.delta || ''));
-          break;
-          
-        case 'conversation.item.input_audio_transcription.completed':
-          setTranscript(data.transcript || '');
-          break;
-      }
-    };
-
-    wsRef.current.onclose = () => {
-      console.log('WebSocket disconnected');
-      setIsConnected(false);
-      setIsConnecting(false);
-    };
-  };
 
   const startListening = async () => {
     try {
