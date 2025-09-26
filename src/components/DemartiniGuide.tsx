@@ -248,7 +248,7 @@ export function DemartiniGuide() {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Demartini Method Guide</h1>
+          <h1 className="text-3xl font-bold mb-2">Self Coaching</h1>
           <p className="text-muted-foreground">
             A structured reflection process to balance emotional charges and gain clarity through systematic questioning.
           </p>
