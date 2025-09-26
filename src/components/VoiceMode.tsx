@@ -56,9 +56,10 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
       // Initialize audio context
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
       
-      // Connect to WebSocket
-      const projectId = 'gqwymmauiijshudgstva';
-      wsRef.current = new WebSocket(`wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-chat`);
+      // Connect to WebSocket with authentication via URL params
+      const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxd3ltbWF1aWlqc2h1ZGdzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4MzUwNTksImV4cCI6MjA3NDQxMTA1OX0.qWRLw0Jz9CftqKU5iq5FI1QMLk9FgcSJCM8jWYKfGsk';
+      
+      wsRef.current = new WebSocket(`wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-chat?apikey=${supabaseKey}`);
       
       wsRef.current.onopen = () => {
         console.log('WebSocket connected');

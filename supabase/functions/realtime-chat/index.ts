@@ -40,40 +40,46 @@ serve(async (req) => {
     
     // Connect to OpenAI Realtime API
     try {
-      openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01");
+      // Connect to OpenAI Realtime API with authorization header
+      openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", [
+        `Bearer ${openAIApiKey}`
+      ]);
       
       openAISocket.onopen = () => {
         console.log("Connected to OpenAI Realtime API");
-        
-        // Send session configuration (OpenAI Realtime API expects this after connection)
-        const sessionConfig = {
-          type: "session.update",
-          session: {
-            modalities: ["text", "audio"],
-            instructions: "You are a helpful AI assistant. Respond naturally and conversationally. Keep responses concise but helpful.",
-            voice: "alloy",
-            input_audio_format: "pcm16",
-            output_audio_format: "pcm16",
-            input_audio_transcription: {
-              model: "whisper-1"
-            },
-            turn_detection: {
-              type: "server_vad",
-              threshold: 0.5,
-              prefix_padding_ms: 300,
-              silence_duration_ms: 1000
-            },
-            temperature: 0.8,
-            max_response_output_tokens: "inf"
-          }
-        };
-        
-        openAISocket?.send(JSON.stringify(sessionConfig));
       };
 
       openAISocket.onmessage = (event) => {
         const data = JSON.parse(event.data);
         console.log("OpenAI message:", data.type);
+        
+        // Send session configuration after session.created
+        if (data.type === 'session.created') {
+          const sessionConfig = {
+            type: "session.update",
+            session: {
+              modalities: ["text", "audio"],
+              instructions: "You are a helpful AI assistant. Respond naturally and conversationally. Keep responses concise but helpful.",
+              voice: "alloy",
+              input_audio_format: "pcm16",
+              output_audio_format: "pcm16", 
+              input_audio_transcription: {
+                model: "whisper-1"
+              },
+              turn_detection: {
+                type: "server_vad",
+                threshold: 0.5,
+                prefix_padding_ms: 300,
+                silence_duration_ms: 1000
+              },
+              temperature: 0.8,
+              max_response_output_tokens: "inf"
+            }
+          };
+          
+          openAISocket?.send(JSON.stringify(sessionConfig));
+          console.log("Session configuration sent");
+        }
         
         // Forward all messages to client
         socket.send(event.data);
