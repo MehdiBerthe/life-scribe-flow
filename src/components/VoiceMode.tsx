@@ -70,9 +70,34 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
 
       wsRef.current.onmessage = async (event) => {
         const data = JSON.parse(event.data);
-        console.log('Received:', data.type);
+        console.log('Received:', data.type, data);
         
         switch (data.type) {
+          case 'connection.test':
+            console.log('WebSocket connection test:', data.message);
+            break;
+            
+          case 'connection.ready':
+            console.log('OpenAI API verified:', data.message);
+            toast({
+              title: "Connection Ready",
+              description: "OpenAI API connection verified successfully"
+            });
+            break;
+            
+          case 'echo':
+            console.log('Echo received:', data.data);
+            break;
+            
+          case 'error':
+            console.error('Voice service error:', data.error);
+            toast({
+              title: "Voice Service Error",
+              description: data.error?.message || "An error occurred with the voice service",
+              variant: "destructive"
+            });
+            break;
+            
           case 'session.created':
             console.log('Session created');
             break;
@@ -113,15 +138,6 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
             
           case 'conversation.item.input_audio_transcription.completed':
             setTranscript(data.transcript || '');
-            break;
-            
-          case 'error':
-            console.error('OpenAI error:', data);
-            toast({
-              title: "Voice Error",
-              description: data.error?.message || "An error occurred during voice interaction",
-              variant: "destructive"
-            });
             break;
         }
       };
