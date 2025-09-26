@@ -6,30 +6,38 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
-  }
+  try {
+    console.log(`${req.method} request received`);
+    
+    // Handle CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      return new Response('ok', { headers: corsHeaders });
+    }
 
-  // Check for OpenAI API key first
-  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openAIApiKey) {
-    console.error("OpenAI API key not found");
-    return new Response("Server configuration error", { 
-      status: 500, 
-      headers: corsHeaders 
-    });
-  }
+    // Check for OpenAI API key first
+    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+    if (!openAIApiKey) {
+      console.error("OpenAI API key not found in environment");
+      return new Response(JSON.stringify({ error: "Server configuration error" }), { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    console.log("OpenAI API key found, length:", openAIApiKey.length);
 
-  const { headers } = req;
-  const upgradeHeader = headers.get("upgrade") || "";
+    const { headers } = req;
+    const upgradeHeader = headers.get("upgrade") || "";
 
-  if (upgradeHeader.toLowerCase() !== "websocket") {
-    return new Response("Expected WebSocket connection", { 
-      status: 400, 
-      headers: corsHeaders 
-    });
-  }
+    if (upgradeHeader.toLowerCase() !== "websocket") {
+      console.log("Non-WebSocket request, upgrade header:", upgradeHeader);
+      return new Response(JSON.stringify({ error: "Expected WebSocket connection" }), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+    
+    console.log("WebSocket upgrade requested");
 
   const { socket, response } = Deno.upgradeWebSocket(req);
   
@@ -40,6 +48,30 @@ serve(async (req) => {
     
     // Connect to OpenAI Realtime API
     try {
+      console.log("Attempting to connect to OpenAI Realtime API...");
+      
+      // Test OpenAI API connectivity first
+      const testResponse = await fetch('https://api.openai.com/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+        }
+      });
+      
+      if (!testResponse.ok) {
+        const errorText = await testResponse.text();
+        console.error("OpenAI API test failed:", testResponse.status, errorText);
+        socket.send(JSON.stringify({
+          type: 'error',
+          error: {
+            message: `OpenAI API authentication failed: ${testResponse.status} - ${errorText.slice(0, 200)}`
+          }
+        }));
+        socket.close();
+        return;
+      }
+      
+      console.log("OpenAI API test successful, connecting to realtime...");
+      
       // Connect to OpenAI Realtime API with authorization header
       openAISocket = new WebSocket("wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2024-10-01", [
         `Bearer ${openAIApiKey}`
@@ -92,10 +124,22 @@ serve(async (req) => {
 
       openAISocket.onerror = (error) => {
         console.error("OpenAI WebSocket error:", error);
+        socket.send(JSON.stringify({
+          type: 'error',
+          error: {
+            message: 'OpenAI WebSocket connection failed'
+          }
+        }));
         socket.close();
       };
     } catch (error) {
       console.error("Failed to create OpenAI WebSocket:", error);
+      socket.send(JSON.stringify({
+        type: 'error',
+        error: {
+          message: `Connection error: ${error instanceof Error ? error.message : 'Unknown error'}`
+        }
+      }));
       socket.close();
     }
   };
@@ -122,4 +166,14 @@ serve(async (req) => {
   };
 
   return response;
+  } catch (error) {
+    console.error("Edge function error:", error);
+    return new Response(JSON.stringify({ 
+      error: "Internal server error", 
+      details: error instanceof Error ? error.message : 'Unknown error'
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
 });
