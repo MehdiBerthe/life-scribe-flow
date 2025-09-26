@@ -56,11 +56,13 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
       // Initialize audio context
       audioContextRef.current = new AudioContext({ sampleRate: 24000 });
       
-      // Connect to WebSocket with authentication via URL params
+      // Connect to WebSocket with proper URL format for Supabase Edge Functions
       console.log("Attempting WebSocket connection to realtime-chat...");
+      const supabaseUrl = 'gqwymmauiijshudgstva.supabase.co';
       const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdxd3ltbWF1aWlqc2h1ZGdzdHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg0MDI2MzQsImV4cCI6MjA3Mzk3ODYzNH0.GXQ7X4-4ICoSSl7q1-5gtrzv7T8UQ77SaqpdMqCQahk';
       
-      wsRef.current = new WebSocket(`wss://gqwymmauiijshudgstva.supabase.co/functions/v1/realtime-chat?apikey=${supabaseKey}`);
+      // Try connecting with proper headers
+      wsRef.current = new WebSocket(`wss://${supabaseUrl}/functions/v1/realtime-chat?apikey=${supabaseKey}`);
       
       wsRef.current.onopen = () => {
         console.log('WebSocket connected');
@@ -144,10 +146,12 @@ export const VoiceMode: React.FC<VoiceModeProps> = ({ onClose }) => {
       };
 
       wsRef.current.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error('WebSocket error details:', error);
+        console.error('WebSocket readyState:', wsRef.current?.readyState);
+        console.error('WebSocket URL was:', `wss://${supabaseUrl}/functions/v1/realtime-chat?apikey=${supabaseKey.substring(0, 20)}...`);
         toast({
           title: "Connection Error",
-          description: "Failed to connect to voice service",
+          description: "Failed to connect to voice service. Check console for details.",
           variant: "destructive"
         });
         setIsConnecting(false);
