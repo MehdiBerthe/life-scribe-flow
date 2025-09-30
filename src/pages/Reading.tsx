@@ -26,6 +26,7 @@ export default function Reading() {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
   const [generatingFlashcards, setGeneratingFlashcards] = useState<string | null>(null);
+  const [viewingNotes, setViewingNotes] = useState<string | null>(null);
   
   const [bookForm, setBookForm] = useState<{
     title: string;
@@ -708,77 +709,85 @@ export default function Reading() {
                     {/* Existing Notes */}
                     {getItemNotes(item.id).length > 0 && (
                       <div className="border-t border-notebook-lines pt-4 mt-4">
-                        <h4 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
-                          <FileText size={14} />
-                          Notes ({getItemNotes(item.id).length})
-                        </h4>
-                        <div className="space-y-3">
-                          {getItemNotes(item.id).slice(0, 2).map((note) => (
-                            <div key={note.id} className="text-sm p-3 bg-muted/30 rounded-lg">
-                              <div className="flex items-start justify-between mb-2">
-                                <div className="text-xs text-muted-foreground">
-                                  {formatDate(note.createdAt)} at {formatTime(note.createdAt)}
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setShowFlashcardForm(showFlashcardForm === note.id ? null : note.id)}
-                                  className="h-6 text-xs flex items-center gap-1"
-                                >
-                                  <Brain size={12} />
-                                  Create Flashcard
-                                </Button>
-                              </div>
-                              <p className="text-foreground whitespace-pre-wrap text-sm mb-2">{note.content}</p>
-                              
-                              {/* Flashcard Form */}
-                              {showFlashcardForm === note.id && (
-                                <div className="mt-3 space-y-2 pt-3 border-t border-border">
-                                  <div>
-                                    <label className="text-xs font-medium text-foreground">Question</label>
-                                    <Input
-                                      value={flashcardForm.question}
-                                      onChange={(e) => setFlashcardForm(prev => ({ ...prev, question: e.target.value }))}
-                                      placeholder="What question should this answer?"
-                                      className="mt-1 text-sm"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="text-xs font-medium text-foreground">Answer</label>
-                                    <Textarea
-                                      value={flashcardForm.answer}
-                                      onChange={(e) => setFlashcardForm(prev => ({ ...prev, answer: e.target.value }))}
-                                      placeholder="The answer or key insight..."
-                                      rows={2}
-                                      className="mt-1 text-sm"
-                                    />
-                                  </div>
-                                  <div className="flex gap-2">
-                                    <Button 
-                                      size="sm" 
-                                      onClick={() => createFlashcard(note.id, item.id)}
-                                      disabled={!flashcardForm.question.trim() || !flashcardForm.answer.trim()}
-                                    >
-                                      Create
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      onClick={() => setShowFlashcardForm(null)}
-                                    >
-                                      Cancel
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                          {getItemNotes(item.id).length > 2 && (
-                            <p className="text-xs text-muted-foreground">
-                              +{getItemNotes(item.id).length - 2} more notes
-                            </p>
-                          )}
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-foreground flex items-center gap-1">
+                            <FileText size={14} />
+                            Notes ({getItemNotes(item.id).length})
+                          </h4>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => setViewingNotes(viewingNotes === item.id ? null : item.id)}
+                            className="h-auto p-0 text-primary"
+                          >
+                            {viewingNotes === item.id ? 'Hide Notes' : 'View Notes'}
+                          </Button>
                         </div>
+                        
+                        {viewingNotes === item.id && (
+                          <div className="space-y-3">
+                            {getItemNotes(item.id).map((note) => (
+                              <div key={note.id} className="text-sm p-3 bg-muted/30 rounded-lg">
+                                <div className="flex items-start justify-between mb-2">
+                                  <div className="text-xs text-muted-foreground">
+                                    {formatDate(note.createdAt)} at {formatTime(note.createdAt)}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setShowFlashcardForm(showFlashcardForm === note.id ? null : note.id)}
+                                    className="h-6 text-xs flex items-center gap-1"
+                                  >
+                                    <Brain size={12} />
+                                    Create Flashcard
+                                  </Button>
+                                </div>
+                                <p className="text-foreground whitespace-pre-wrap text-sm mb-2">{note.content}</p>
+                                
+                                {/* Flashcard Form */}
+                                {showFlashcardForm === note.id && (
+                                  <div className="mt-3 space-y-2 pt-3 border-t border-border">
+                                    <div>
+                                      <label className="text-xs font-medium text-foreground">Question</label>
+                                      <Input
+                                        value={flashcardForm.question}
+                                        onChange={(e) => setFlashcardForm(prev => ({ ...prev, question: e.target.value }))}
+                                        placeholder="What question should this answer?"
+                                        className="mt-1 text-sm"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-xs font-medium text-foreground">Answer</label>
+                                      <Textarea
+                                        value={flashcardForm.answer}
+                                        onChange={(e) => setFlashcardForm(prev => ({ ...prev, answer: e.target.value }))}
+                                        placeholder="The answer or key insight..."
+                                        rows={2}
+                                        className="mt-1 text-sm"
+                                      />
+                                    </div>
+                                    <div className="flex gap-2">
+                                      <Button 
+                                        size="sm" 
+                                        onClick={() => createFlashcard(note.id, item.id)}
+                                        disabled={!flashcardForm.question.trim() || !flashcardForm.answer.trim()}
+                                      >
+                                        Create
+                                      </Button>
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline" 
+                                        onClick={() => setShowFlashcardForm(null)}
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     )}
 
