@@ -26,6 +26,17 @@ export interface ReadingNote {
   content: string;
 }
 
+export interface Flashcard {
+  id: string;
+  noteId: string;
+  itemId: string;
+  question: string;
+  answer: string;
+  createdAt: Date;
+  lastReviewed?: Date;
+  timesReviewed: number;
+}
+
 export interface WeeklyReview {
   id: string;
   weekStart: Date;

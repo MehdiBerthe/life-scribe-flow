@@ -3,6 +3,7 @@ import {
   JournalEntry, 
   ReadingItem, 
   ReadingNote, 
+  Flashcard,
   WeeklyReview, 
   EndOfDayReview,
   WeeklyPlan,
@@ -18,6 +19,7 @@ const STORAGE_KEYS = {
   JOURNAL: 'lifeos_journal',
   READING: 'lifeos_reading',
   READING_NOTES: 'lifeos_reading_notes',
+  FLASHCARDS: 'lifeos_flashcards',
   WEEKLY_REVIEWS: 'lifeos_weekly_reviews',
   END_OF_DAY_REVIEWS: 'lifeos_end_of_day_reviews',
   WEEKLY_PLANS: 'lifeos_weekly_plans',
@@ -45,6 +47,7 @@ export function getFromStorage<T>(key: string, defaultValue: T[] = []): T[] {
       ...(item.nextTouch && { nextTouch: new Date(item.nextTouch) }),
       ...(item.last_touch && { last_touch: new Date(item.last_touch) }),
       ...(item.next_touch && { next_touch: new Date(item.next_touch) }),
+      ...(item.lastReviewed && { lastReviewed: new Date(item.lastReviewed) }),
     }));
   } catch (error) {
     console.error(`Error loading ${key}:`, error);
@@ -73,6 +76,10 @@ export const storage = {
   readingNotes: {
     getAll: (): ReadingNote[] => getFromStorage(STORAGE_KEYS.READING_NOTES),
     save: (notes: ReadingNote[]) => saveToStorage(STORAGE_KEYS.READING_NOTES, notes),
+  },
+  flashcards: {
+    getAll: (): Flashcard[] => getFromStorage(STORAGE_KEYS.FLASHCARDS),
+    save: (flashcards: Flashcard[]) => saveToStorage(STORAGE_KEYS.FLASHCARDS, flashcards),
   },
   weeklyReviews: {
     getAll: (): WeeklyReview[] => getFromStorage(STORAGE_KEYS.WEEKLY_REVIEWS),

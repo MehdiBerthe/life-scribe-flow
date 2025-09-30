@@ -8,17 +8,22 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { NotebookPage } from '@/components/NotebookPage';
 import { storage, generateId, formatDate, formatTime } from '@/lib/storage';
-import { ReadingItem, ReadingNote, BOOK_CATEGORIES } from '@/types';
-import { BookOpen, Plus, FileText, ExternalLink, Lightbulb, Edit } from 'lucide-react';
+import { ReadingItem, ReadingNote, Flashcard, BOOK_CATEGORIES } from '@/types';
+import { BookOpen, Plus, FileText, ExternalLink, Lightbulb, Edit, Brain, CheckCircle, XCircle } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { indexForRag } from '@/lib/rag';
 
 export default function Reading() {
   const [items, setItems] = useState<ReadingItem[]>([]);
   const [notes, setNotes] = useState<ReadingNote[]>([]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [showBookForm, setShowBookForm] = useState(false);
   const [editingBook, setEditingBook] = useState<ReadingItem | null>(null);
   const [showNoteForm, setShowNoteForm] = useState<string | null>(null);
+  const [showFlashcardForm, setShowFlashcardForm] = useState<string | null>(null);
+  const [studyMode, setStudyMode] = useState(false);
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
+  const [showAnswer, setShowAnswer] = useState(false);
   
   const [bookForm, setBookForm] = useState<{
     title: string;
@@ -38,12 +43,19 @@ export default function Reading() {
     content: ''
   });
 
+  const [flashcardForm, setFlashcardForm] = useState({
+    question: '',
+    answer: ''
+  });
+
   useEffect(() => {
     const loadedItems = storage.reading.getAll();
     const loadedNotes = storage.readingNotes.getAll();
+    const loadedFlashcards = storage.flashcards.getAll();
     
     setItems(loadedItems.sort((a, b) => a.title.localeCompare(b.title)));
     setNotes(loadedNotes.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
+    setFlashcards(loadedFlashcards.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()));
   }, []);
 
   const addBook = (e: React.FormEvent) => {
@@ -192,22 +204,188 @@ export default function Reading() {
     return notes.filter(note => note.itemId === itemId);
   };
 
+  const getItemFlashcards = (itemId: string) => {
+    return flashcards.filter(card => card.itemId === itemId);
+  };
+
+  const createFlashcard = (noteId: string, itemId: string) => {
+    if (!flashcardForm.question.trim() || !flashcardForm.answer.trim()) return;
+
+    const newFlashcard: Flashcard = {
+      id: generateId(),
+      noteId,
+      itemId,
+      question: flashcardForm.question.trim(),
+      answer: flashcardForm.answer.trim(),
+      createdAt: new Date(),
+      timesReviewed: 0
+    };
+
+    const updatedFlashcards = [newFlashcard, ...flashcards];
+    setFlashcards(updatedFlashcards);
+    storage.flashcards.save(updatedFlashcards);
+
+    setFlashcardForm({ question: '', answer: '' });
+    setShowFlashcardForm(null);
+    
+    const book = items.find(item => item.id === itemId);
+    toast({
+      title: "Flashcard Created",
+      description: `Flashcard added for "${book?.title}"`
+    });
+  };
+
+  const startStudyMode = () => {
+    if (flashcards.length === 0) {
+      toast({
+        title: "No Flashcards",
+        description: "Create some flashcards first to start studying!",
+        variant: "destructive"
+      });
+      return;
+    }
+    setStudyMode(true);
+    setCurrentCardIndex(0);
+    setShowAnswer(false);
+  };
+
+  const nextCard = () => {
+    if (currentCardIndex < flashcards.length - 1) {
+      setCurrentCardIndex(currentCardIndex + 1);
+      setShowAnswer(false);
+    } else {
+      setStudyMode(false);
+      setCurrentCardIndex(0);
+      setShowAnswer(false);
+      toast({
+        title: "Study Session Complete!",
+        description: `You reviewed ${flashcards.length} flashcard${flashcards.length > 1 ? 's' : ''}.`
+      });
+    }
+  };
+
+  const markReviewed = () => {
+    const updatedFlashcards = flashcards.map((card, idx) => 
+      idx === currentCardIndex 
+        ? { ...card, lastReviewed: new Date(), timesReviewed: card.timesReviewed + 1 }
+        : card
+    );
+    setFlashcards(updatedFlashcards);
+    storage.flashcards.save(updatedFlashcards);
+    nextCard();
+  };
+
   return (
     <div className="space-y-4 md:space-y-6 mobile-container">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Reading List</h1>
-        </div>
-        <Button 
-          onClick={() => setShowBookForm(!showBookForm)}
-          className="flex items-center gap-2 w-full sm:w-auto"
-          size="sm"
-        >
-          <Plus size={16} />
-          Add Book
-        </Button>
-      </div>
+      {/* Study Mode */}
+      {studyMode && flashcards.length > 0 && (
+        <NotebookPage showLines>
+          <Card className="border-0 bg-transparent shadow-none">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-ink flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  Study Mode
+                </CardTitle>
+                <Badge variant="outline">
+                  {currentCardIndex + 1} / {flashcards.length}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="min-h-[200px] flex flex-col justify-center">
+                <div className="text-lg font-semibold mb-4 text-foreground">
+                  Question:
+                </div>
+                <div className="text-base text-foreground mb-6 p-4 bg-muted/50 rounded-lg">
+                  {flashcards[currentCardIndex].question}
+                </div>
+
+                {showAnswer && (
+                  <div className="animate-in fade-in duration-300">
+                    <div className="text-lg font-semibold mb-4 text-foreground">
+                      Answer:
+                    </div>
+                    <div className="text-base text-foreground p-4 bg-accent/20 rounded-lg">
+                      {flashcards[currentCardIndex].answer}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                {!showAnswer ? (
+                  <Button onClick={() => setShowAnswer(true)} className="w-full">
+                    Show Answer
+                  </Button>
+                ) : (
+                  <>
+                    <Button 
+                      onClick={markReviewed} 
+                      className="w-full sm:w-auto flex items-center gap-2"
+                      variant="default"
+                    >
+                      <CheckCircle size={16} />
+                      Got it
+                    </Button>
+                    <Button 
+                      onClick={nextCard} 
+                      variant="outline"
+                      className="w-full sm:w-auto flex items-center gap-2"
+                    >
+                      <XCircle size={16} />
+                      Need to review
+                    </Button>
+                  </>
+                )}
+                <Button 
+                  onClick={() => {
+                    setStudyMode(false);
+                    setCurrentCardIndex(0);
+                    setShowAnswer(false);
+                  }} 
+                  variant="ghost"
+                  className="w-full sm:w-auto"
+                >
+                  Exit Study Mode
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </NotebookPage>
+      )}
+
+      {!studyMode && (
+        <>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 md:h-6 md:w-6 text-primary" />
+              <h1 className="text-2xl md:text-3xl font-bold text-foreground">Reading List</h1>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {flashcards.length > 0 && (
+                <Button 
+                  onClick={startStudyMode}
+                  variant="outline"
+                  className="flex items-center gap-2 w-full sm:w-auto"
+                  size="sm"
+                >
+                  <Brain size={16} />
+                  Study Flashcards ({flashcards.length})
+                </Button>
+              )}
+              <Button 
+                onClick={() => setShowBookForm(!showBookForm)}
+                className="flex items-center gap-2 w-full sm:w-auto"
+                size="sm"
+              >
+                <Plus size={16} />
+                Add Book
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Add/Edit Book Form */}
       {showBookForm && (
@@ -438,18 +616,97 @@ export default function Reading() {
                           <FileText size={14} />
                           Notes ({getItemNotes(item.id).length})
                         </h4>
-                        <div className="space-y-2">
+                        <div className="space-y-3">
                           {getItemNotes(item.id).slice(0, 2).map((note) => (
-                            <div key={note.id} className="text-sm">
-                              <div className="text-xs text-muted-foreground mb-1">
-                                {formatDate(note.createdAt)} at {formatTime(note.createdAt)}
+                            <div key={note.id} className="text-sm p-3 bg-muted/30 rounded-lg">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="text-xs text-muted-foreground">
+                                  {formatDate(note.createdAt)} at {formatTime(note.createdAt)}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setShowFlashcardForm(showFlashcardForm === note.id ? null : note.id)}
+                                  className="h-6 text-xs flex items-center gap-1"
+                                >
+                                  <Brain size={12} />
+                                  Create Flashcard
+                                </Button>
                               </div>
-                              <p className="text-foreground whitespace-pre-wrap text-sm">{note.content}</p>
+                              <p className="text-foreground whitespace-pre-wrap text-sm mb-2">{note.content}</p>
+                              
+                              {/* Flashcard Form */}
+                              {showFlashcardForm === note.id && (
+                                <div className="mt-3 space-y-2 pt-3 border-t border-border">
+                                  <div>
+                                    <label className="text-xs font-medium text-foreground">Question</label>
+                                    <Input
+                                      value={flashcardForm.question}
+                                      onChange={(e) => setFlashcardForm(prev => ({ ...prev, question: e.target.value }))}
+                                      placeholder="What question should this answer?"
+                                      className="mt-1 text-sm"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="text-xs font-medium text-foreground">Answer</label>
+                                    <Textarea
+                                      value={flashcardForm.answer}
+                                      onChange={(e) => setFlashcardForm(prev => ({ ...prev, answer: e.target.value }))}
+                                      placeholder="The answer or key insight..."
+                                      rows={2}
+                                      className="mt-1 text-sm"
+                                    />
+                                  </div>
+                                  <div className="flex gap-2">
+                                    <Button 
+                                      size="sm" 
+                                      onClick={() => createFlashcard(note.id, item.id)}
+                                      disabled={!flashcardForm.question.trim() || !flashcardForm.answer.trim()}
+                                    >
+                                      Create
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      onClick={() => setShowFlashcardForm(null)}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              )}
                             </div>
                           ))}
                           {getItemNotes(item.id).length > 2 && (
                             <p className="text-xs text-muted-foreground">
                               +{getItemNotes(item.id).length - 2} more notes
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Flashcards */}
+                    {getItemFlashcards(item.id).length > 0 && (
+                      <div className="border-t border-notebook-lines pt-4 mt-4">
+                        <h4 className="text-sm font-medium text-foreground mb-2 flex items-center gap-1">
+                          <Brain size={14} />
+                          Flashcards ({getItemFlashcards(item.id).length})
+                        </h4>
+                        <div className="space-y-2">
+                          {getItemFlashcards(item.id).slice(0, 3).map((card) => (
+                            <div key={card.id} className="text-sm p-3 bg-accent/10 rounded-lg">
+                              <div className="font-medium text-foreground mb-1">Q: {card.question}</div>
+                              <div className="text-muted-foreground text-xs mb-1">A: {card.answer}</div>
+                              <div className="text-xs text-muted-foreground">
+                                Reviewed {card.timesReviewed} time{card.timesReviewed !== 1 ? 's' : ''}
+                                {card.lastReviewed && ` • Last: ${formatDate(card.lastReviewed)}`}
+                              </div>
+                            </div>
+                          ))}
+                          {getItemFlashcards(item.id).length > 3 && (
+                            <p className="text-xs text-muted-foreground">
+                              +{getItemFlashcards(item.id).length - 3} more flashcards
                             </p>
                           )}
                         </div>
@@ -492,6 +749,59 @@ export default function Reading() {
                     </CardHeader>
                     <CardContent>
                       <p className="text-sm text-ink whitespace-pre-wrap">{note.content}</p>
+                      
+                      {/* Quick Flashcard Creator */}
+                      <div className="mt-3 pt-3 border-t border-notebook-lines">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowFlashcardForm(showFlashcardForm === note.id ? null : note.id)}
+                          className="flex items-center gap-1"
+                        >
+                          <Brain size={14} />
+                          Create Flashcard from Note
+                        </Button>
+                        
+                        {showFlashcardForm === note.id && (
+                          <div className="mt-3 space-y-2">
+                            <div>
+                              <label className="text-xs font-medium text-foreground">Question</label>
+                              <Input
+                                value={flashcardForm.question}
+                                onChange={(e) => setFlashcardForm(prev => ({ ...prev, question: e.target.value }))}
+                                placeholder="What question should this answer?"
+                                className="mt-1"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-xs font-medium text-foreground">Answer</label>
+                              <Textarea
+                                value={flashcardForm.answer}
+                                onChange={(e) => setFlashcardForm(prev => ({ ...prev, answer: e.target.value }))}
+                                placeholder="The answer or key insight..."
+                                rows={2}
+                                className="mt-1"
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                onClick={() => createFlashcard(note.id, note.itemId)}
+                                disabled={!flashcardForm.question.trim() || !flashcardForm.answer.trim()}
+                              >
+                                Create Flashcard
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                onClick={() => setShowFlashcardForm(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </CardContent>
                   </Card>
                 </NotebookPage>
