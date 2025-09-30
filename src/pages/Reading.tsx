@@ -9,9 +9,10 @@ import { Progress } from '@/components/ui/progress';
 import { NotebookPage } from '@/components/NotebookPage';
 import { storage, generateId, formatDate, formatTime } from '@/lib/storage';
 import { ReadingItem, ReadingNote, Flashcard, BOOK_CATEGORIES } from '@/types';
-import { BookOpen, Plus, FileText, ExternalLink, Lightbulb, Edit, Brain, CheckCircle, XCircle } from 'lucide-react';
+import { BookOpen, Plus, FileText, ExternalLink, Lightbulb, Edit, Brain, CheckCircle, XCircle, Sparkles } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { indexForRag } from '@/lib/rag';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Reading() {
   const [items, setItems] = useState<ReadingItem[]>([]);
@@ -24,6 +25,7 @@ export default function Reading() {
   const [studyMode, setStudyMode] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
+  const [generatingFlashcards, setGeneratingFlashcards] = useState<string | null>(null);
   
   const [bookForm, setBookForm] = useState<{
     title: string;
@@ -273,6 +275,87 @@ export default function Reading() {
     setFlashcards(updatedFlashcards);
     storage.flashcards.save(updatedFlashcards);
     nextCard();
+  };
+
+  const generateFlashcardsWithAI = async (itemId: string) => {
+    const book = items.find(item => item.id === itemId);
+    const bookNotes = getItemNotes(itemId);
+    
+    if (bookNotes.length === 0) {
+      toast({
+        title: "No Notes Found",
+        description: "Add a note for this book first to generate flashcards.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Combine all notes for the book
+    const noteContent = bookNotes.map(note => note.content).join('\n\n');
+
+    setGeneratingFlashcards(itemId);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-flashcards', {
+        body: {
+          noteContent,
+          bookTitle: book?.title || 'Unknown Book'
+        }
+      });
+
+      if (error) {
+        console.error('Error generating flashcards:', error);
+        if (error.message?.includes('429')) {
+          toast({
+            title: "Rate Limit Exceeded",
+            description: "Too many requests. Please try again later.",
+            variant: "destructive"
+          });
+        } else if (error.message?.includes('402')) {
+          toast({
+            title: "Credits Required",
+            description: "Please add credits to your workspace to use AI features.",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to generate flashcards. Please try again.",
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+
+      // Create flashcards from AI response
+      const newFlashcards: Flashcard[] = data.flashcards.map((card: { question: string; answer: string }) => ({
+        id: generateId(),
+        noteId: bookNotes[0].id, // Associate with first note
+        itemId,
+        question: card.question,
+        answer: card.answer,
+        createdAt: new Date(),
+        timesReviewed: 0
+      }));
+
+      const updatedFlashcards = [...newFlashcards, ...flashcards];
+      setFlashcards(updatedFlashcards);
+      storage.flashcards.save(updatedFlashcards);
+
+      toast({
+        title: "Flashcards Generated!",
+        description: `Created ${newFlashcards.length} flashcards for "${book?.title}"`
+      });
+    } catch (error) {
+      console.error('Error:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate flashcards. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setGeneratingFlashcards(null);
+    }
   };
 
   return (
@@ -576,6 +659,19 @@ export default function Reading() {
                         <Lightbulb size={14} />
                         Add Note
                       </Button>
+
+                      {getItemNotes(item.id).length > 0 && (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => generateFlashcardsWithAI(item.id)}
+                          disabled={generatingFlashcards === item.id}
+                          className="flex items-center gap-1 w-full sm:w-auto"
+                        >
+                          <Sparkles size={14} />
+                          {generatingFlashcards === item.id ? 'Generating...' : 'AI Generate Flashcards'}
+                        </Button>
+                      )}
                     </div>
 
                     {/* Add Note Form */}
