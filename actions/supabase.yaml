@@ -1,0 +1,20 @@
+schema_version: 1
+name: supabase
+summary: Supabase PostgREST endpoint for the Life Scribe Flow database.
+auth:
+  type: bearer
+  instructions: >-
+    Use the Supabase service role key. Example: `Authorization: Bearer ${SUPABASE_SERVICE_KEY}`.
+servers:
+  - url: ${SUPABASE_URL}/rest/v1
+    description: Primary Supabase REST interface.
+resources:
+  - type: rest
+    name: journal_entries
+    description: CRUD access to journal entries. RLS should require auth.uid() = user_id for end-user tokens.
+  - type: rest
+    name: goals
+    description: Goals and focus areas table. RLS should require auth.uid() = user_id for end-user tokens.
+  - type: rest
+    name: signals
+    description: Quantified signals captured for each user. RLS should require auth.uid() = user_id for end-user tokens.

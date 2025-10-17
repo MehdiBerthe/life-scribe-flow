@@ -8,10 +8,16 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:app": "tsx appsdk/server.ts",
+    "dev:components": "vite --config components-app/vite.config.ts",
+    "dev:mcp": "tsx watch appsdk/server.ts",
+    "build:mcp": "tsc --project appsdk/tsconfig.json",
+    "set:component-url": "tsx scripts/set-component-url.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
+    "@openai/apps-sdk": "file:appsdk/shims/apps-sdk",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
     "@radix-ui/react-aspect-ratio": "^1.1.7",
@@ -45,6 +51,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^3.6.0",
+    "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
     "input-otp": "^1.4.2",
     "jsdom": "^27.0.0",
@@ -79,6 +86,7 @@
     "lovable-tagger": "^1.1.9",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.2",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
     "vite": "^5.4.19"

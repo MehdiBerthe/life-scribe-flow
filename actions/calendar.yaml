@@ -1,0 +1,13 @@
+schema_version: 1
+name: calendar
+summary: External calendar API for scheduling focus blocks and reminders.
+auth:
+  type: bearer
+  instructions: Provide `Authorization: Bearer <calendar_token>` issued by the calendar provider.
+servers:
+  - url: https://api.calendar.example.com/v1
+    description: Placeholder calendar service endpoint.
+resources:
+  - type: rest
+    name: events
+    description: CRUD operations for calendar events tied to focus goals.

@@ -29,14 +29,16 @@ function normalizeText(text: string): string {
   return text.toLowerCase().trim();
 }
 
-function countKeywordMatches(text: string, keywords: string[]): number {
-  const normalized = normalizeText(text);
+function countKeywordMatches(normalized: string, keywords: string[]): number {
   return keywords.filter(keyword => normalized.includes(keyword)).length;
 }
 
-function hasMixedIndicators(text: string): boolean {
-  const normalized = normalizeText(text);
+function hasMixedIndicators(normalized: string): boolean {
   return MIXED_INDICATORS.some(indicator => normalized.includes(indicator));
+}
+
+function startsWithKeyword(normalized: string, keywords: string[]): boolean {
+  return keywords.some(keyword => normalized.startsWith(keyword));
 }
 
 export function detectIntent(userText: string): IntentResult {
@@ -44,9 +46,13 @@ export function detectIntent(userText: string): IntentResult {
     return { intent: 'action', confidence: 0.5 };
   }
 
-  const actionMatches = countKeywordMatches(userText, ACTION_KEYWORDS);
-  const recallMatches = countKeywordMatches(userText, RECALL_KEYWORDS);
-  const mixedIndicators = hasMixedIndicators(userText);
+  const normalized = normalizeText(userText);
+  const actionMatches = countKeywordMatches(normalized, ACTION_KEYWORDS);
+  const recallMatches = countKeywordMatches(normalized, RECALL_KEYWORDS);
+  const mixedIndicators = hasMixedIndicators(normalized);
+  const hasConjunction = /(\band\b|\bthen\b|\bafter\b|\balso\b|\bnext\b|\bfollowed by\b|\bbut\b|\bbefore\b)/.test(
+    normalized
+  );
 
   // Calculate confidence based on keyword density
   const textWords = userText.split(/\s+/).length;
@@ -54,7 +60,7 @@ export function detectIntent(userText: string): IntentResult {
   const recallDensity = recallMatches / textWords;
 
   // Check for mixed intent first
-  if (mixedIndicators || (actionMatches > 0 && recallMatches > 0)) {
+  if (mixedIndicators || (hasConjunction && actionMatches > 0 && recallMatches > 0)) {
     return {
       intent: 'mixed',
       confidence: Math.min(0.9, 0.6 + (actionMatches + recallMatches) * 0.1),
@@ -78,23 +84,48 @@ export function detectIntent(userText: string): IntentResult {
     };
   }
 
-  // Default to mixed if no clear indicators
+  // No clear keyword signal
   if (actionMatches === 0 && recallMatches === 0) {
     // Check for question patterns that suggest recall
     const questionPattern = /^(what|who|when|where|why|how|can you|could you|do you|did i|have i)/i;
     if (questionPattern.test(userText.trim())) {
       return { intent: 'recall', confidence: 0.6 };
     }
-    
+
     // Default to action for statements
     return { intent: 'action', confidence: 0.5 };
   }
 
-  // Equal matches - default to mixed
+  // Equal matches - resolve using leading keyword or question pattern
+  const leadingRecall = startsWithKeyword(normalized, RECALL_KEYWORDS) || /^(what|who|when|where|why|how|find|show|list|tell)/.test(normalized);
+  const leadingAction = startsWithKeyword(normalized, ACTION_KEYWORDS);
+
+  if (leadingRecall && !leadingAction) {
+    return {
+      intent: 'recall',
+      confidence: Math.min(0.9, 0.65 + recallDensity * 2)
+    };
+  }
+
+  if (leadingAction && !leadingRecall) {
+    return {
+      intent: 'action',
+      confidence: Math.min(0.9, 0.65 + actionDensity * 2)
+    };
+  }
+
+  // Fallback to recall for ties initiated by questions, otherwise action
+  const questionLead = /^(what|who|when|where|why|how|can you|could you|do you|did i|have i|should i)/.test(normalized);
+  if (questionLead) {
+    return {
+      intent: 'recall',
+      confidence: 0.65
+    };
+  }
+
   return {
-    intent: 'mixed',
-    confidence: 0.7,
-    postAction: true
+    intent: 'action',
+    confidence: 0.65
   };
 }
 

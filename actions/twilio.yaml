@@ -1,0 +1,13 @@
+schema_version: 1
+name: twilio
+summary: Twilio messaging API for proactive focus nudges.
+auth:
+  type: bearer
+  instructions: Provide `Authorization: Bearer <twilio_token>` generated for this integration.
+servers:
+  - url: https://api.twilio.com/2010-04-01
+    description: Twilio REST API base URL.
+resources:
+  - type: rest
+    name: messages
+    description: Send SMS nudges to users about their focus plan.
